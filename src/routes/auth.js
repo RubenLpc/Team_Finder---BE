@@ -4,11 +4,11 @@ const { registerValidation, loginValidation } = require('../validators/auth')
 const { valiodationMiddleware } = require('../middlewares/validation-middleware')
 const {userAuth} = require('../middlewares/auth-middleware')
 const router = Router()
-const path = require('path');
 const { create_departament, assignManagerToDepartment, addEmployeeToDepartment, getDepartmentMembers, deleteDepartment } = require('../controllers/departaments')
 const { getOrganizationMembers, assignEmployeeRole } = require('../controllers/organizator')
 const { createSkill, updateSkill, deleteSkill, getAllSkillsForOrganization, linkSkillToDepartment } = require('../controllers/skills')
 const { addSkillToUser, getUserSkills } = require('../controllers/user_skill')
+const {  createProject, updateProject, deleteProject } = require('../controllers/projects')
 
 
 
@@ -24,7 +24,7 @@ router.post('/departments/:departmentName/managers',userAuth, assignManagerToDep
 router.post('/departments/addEmployee', userAuth,addEmployeeToDepartment);
 router.get('/departments/:departmentName/members', getDepartmentMembers);
 router.get('/organizator/members',userAuth, getOrganizationMembers );
-router.post('/organizator/:employeeName/role',assignEmployeeRole)
+router.post('/organizator/:employeeName/assignRole',userAuth,assignEmployeeRole)
 router.delete('/departments/:departmentName/delete', userAuth, deleteDepartment)
 router.post('/skills/create', userAuth, createSkill);
 router.put('/skills/update', userAuth, updateSkill);
@@ -33,6 +33,9 @@ router.get('/skills/organization', userAuth, getAllSkillsForOrganization);
 router.post('/skills/link-to-department',userAuth, linkSkillToDepartment);
 router.post('/users/addskills', userAuth, addSkillToUser)
 router.get('/users/getskills',userAuth, getUserSkills)
+router.post('/projects/create', userAuth,createProject)
+router.put('/projects/:projectName/update', userAuth, updateProject);
+router.delete('/projects/:projectName/delete', userAuth, deleteProject);
 
 
 module.exports = router

@@ -30,3 +30,22 @@ CREATE TABLE UserSkills (
     experience VARCHAR(20) CHECK (experience IN ('0-6 months', '6-12 months', '1-2 years', '2-4 years', '4-7 years', '>7 years')),
     
 );
+
+
+CREATE TABLE ProjectTeamRoles (
+    project_id INT ,
+    role_name VARCHAR(255) NOT NULL,
+    members_count INT NOT NULL
+
+);
+
+CREATE TABLE Projects (
+    project_id SERIAL PRIMARY KEY,
+    project_name VARCHAR(255) NOT NULL,
+    project_period VARCHAR(20) NOT NULL CHECK (project_period IN ('Fixed', 'Ongoing')),
+    start_date DATE NOT NULL,
+    deadline_date DATE,
+    status VARCHAR(20) NOT NULL CHECK (status IN ('Not Started', 'Starting', 'In Progress', 'Closing', 'Closed')),
+    general_description TEXT,
+    technology_stack TEXT
+);
