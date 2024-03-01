@@ -20,16 +20,20 @@ exports.getUsers = async (req, res) => {
 exports.register = async (req, res) => {
   try {
     const { name, email, password } = req.body;
-    const org_id = req.body.organization_id;
+    const org_id = req.user.organization_id;
     const role = "Employee";
     const hashedPassword = await hash(password, 10);
-
-    await db.query(
-      "insert into users(username,email,password,role,organization_id) values ($1 , $2, $3, $4, $5)",
+    console.log(req.user)
+    const newUser = await db.query(
+      "insert into users(username,email,password,role,organization_id) values ($1 , $2, $3, $4, $5) returning *",
       [name, email, hashedPassword, role, org_id]
     );
-
-    return res.status(201).json({
+    let payload = {
+      id: newUser.rows[0].user_id,
+      email: newUser.rows[0].email,
+    };
+    const token = await sign(payload, SECRET);
+    return res.status(201).cookie("token", token, { httpOnly: true }).json({
       success: true,
       message: "The registration was succefull",
       accountType: role,
@@ -63,7 +67,7 @@ exports.register_admins = async (req, res) => {
     );
 
     
- console.log(user.rows[0])
+ 
   let payload = {
     id: user.rows[0].user_id,
     email: user.rows[0].email,
@@ -85,12 +89,12 @@ exports.register_admins = async (req, res) => {
 };
 
 exports.login = async (req, res) => {
-  console.log(req);
+  
   let user = req.user;
 
   let payload = {
     id: user.user_id,
-    email: user.email,
+    email: user.email
   };
 
   try {
@@ -119,7 +123,8 @@ exports.protected = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
-  try {
+  try {console.log(req.user)
+
     return res.status(200).clearCookie("token", { httpOnly: true }).json({
       success: true,
       message: "Logged out succefully",

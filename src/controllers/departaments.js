@@ -27,21 +27,37 @@ exports.create_departament = async (req, res) => {
   }
 };
 
+
+
 exports.assignManagerToDepartment = async (req, res) => {
   try {
     const { manager_name } = req.body;
     const { departmentName } = req.params;
+   console.log(req.user)
+    if (req.user.role !== "Organization Admin") {
+      return res.status(403).json({
+        error: "Access forbidden. Only Organization Admins can perform this action.",
+        
+      });
+    }
 
     const managerCheck = await db.query(
-      "SELECT * FROM users WHERE username = $1 AND role = 'Employee'",
+      "SELECT * FROM users WHERE username = $1 AND role = 'Department Manager'",
       [manager_name]
     );
+
 
     if (managerCheck.rows.length === 0) {
       return res
         .status(404)
         .json({ error: "Employee not found or not eligible to be a manager" });
     }
+    if(managerCheck.rows[0].organization_id !== req.user.organization_id){
+      return res
+      .status(404)
+      .json({ error: "Department Manager not found in this organization" });
+    }
+
 
     const managerId = managerCheck.rows[0].user_id;
 
@@ -81,6 +97,11 @@ exports.assignManagerToDepartment = async (req, res) => {
       [managerId]
     );
 
+    await db.query(
+      "UPDATE users SET department_id = $1 WHERE user_id = $2",
+      [departmentCheck.rows[0].department_id,managerId]
+    );
+
     res.status(200).json({
       success: true,
       user: result.rows[0],
@@ -94,7 +115,7 @@ exports.assignManagerToDepartment = async (req, res) => {
 exports.addEmployeeToDepartment = async (req, res) => {
   try {
     const { employeeName } = req.body;
-    console.log(req.user)
+    
     let departmentId = req.user.department_id;
 
     if (req.user.role !== "Department Manager") {
@@ -176,6 +197,64 @@ exports.getDepartmentMembers = async (req, res) => {
       succes: true,
       users: result.rows,
     });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
+exports.deleteDepartment = async (req, res) => {
+  try {
+    const { departmentName } = req.params;
+
+    const isOrgAdmin = req.user.role === "Organization Admin";
+    const isDeptManager = req.user.role === "Department Manager";
+
+    if (!isOrgAdmin && !isDeptManager) {
+      return res.status(403).json({
+        error:
+          "Access forbidden. Only Organization Admins or Department Managers can perform this action.",
+      });
+    }
+
+    const existingDepartment = await db.query(
+      "SELECT * FROM departments WHERE department_name = $1",
+      [departmentName]
+    );
+
+    if (existingDepartment.rows.length === 0) {
+      return res.status(404).json({ error: "Department not found" });
+    }
+
+    const departmentId = existingDepartment.rows[0].department_id;
+    const memberIds = await db.query(
+      "SELECT user_id FROM users WHERE department_id = $1",
+      [departmentId]
+    );
+
+    await db.query("DELETE FROM departments WHERE department_name = $1", [
+      departmentName,
+    ]);
+
+    await Promise.all(
+      memberIds.rows.map(async (member) => {
+        if (member.user_id === req.user.id) {
+          await db.query(
+            "UPDATE users SET department_id = NULL WHERE user_id = $1",
+            [member.user_id]
+          );
+        } else {
+          await db.query(
+            "UPDATE users SET role = 'Employee', department_id = NULL WHERE user_id = $1",
+            [member.user_id]
+          );
+        }
+      })
+    );
+
+    res.status(200).json({ success: true, message: "Department deleted" });
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ error: error.message });
