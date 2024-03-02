@@ -49,3 +49,34 @@ CREATE TABLE Projects (
     general_description TEXT,
     technology_stack TEXT
 );
+
+CREATE TABLE ProjectTeam (
+    project_id INT,
+    user_id INT,
+    work_hours INT,
+    roles VARCHAR(255),
+    comments TEXT
+ 
+);
+
+CREATE TABLE ProjectProposals (
+    proposal_id SERIAL PRIMARY KEY,
+    project_id INTEGER,
+    proposed_user_id INTEGER,
+    department_id INTEGER,
+    proposal_type VARCHAR(20), 
+    deallocation_reason TEXT,
+     work_hours INT,
+    roles VARCHAR(255),
+    comments TEXT
+    
+);
+
+
+CREATE TABLE ProjectTeamStatus (
+    team_status_id SERIAL PRIMARY KEY,
+    project_id INTEGER,
+    user_id INTEGER,
+    status VARCHAR(20)
+   
+);

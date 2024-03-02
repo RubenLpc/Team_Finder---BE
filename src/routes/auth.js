@@ -8,7 +8,8 @@ const { create_departament, assignManagerToDepartment, addEmployeeToDepartment, 
 const { getOrganizationMembers, assignEmployeeRole } = require('../controllers/organizator')
 const { createSkill, updateSkill, deleteSkill, getAllSkillsForOrganization, linkSkillToDepartment } = require('../controllers/skills')
 const { addSkillToUser, getUserSkills } = require('../controllers/user_skill')
-const {  createProject, updateProject, deleteProject } = require('../controllers/projects')
+const {  createProject, updateProject, deleteProject, findAvailableEmployees, findEmployees } = require('../controllers/projects')
+const { proposeDeallocation, proposeAssignment, getEmployeeProposals, processProposal } = require('../controllers/proposals')
 
 
 
@@ -36,6 +37,13 @@ router.get('/users/getskills',userAuth, getUserSkills)
 router.post('/projects/create', userAuth,createProject)
 router.put('/projects/:projectName/update', userAuth, updateProject);
 router.delete('/projects/:projectName/delete', userAuth, deleteProject);
+router.post('/findAvailableEmployees',userAuth, findAvailableEmployees);
+router.post('/findEmployees',userAuth, findEmployees);
+router.post('/:projectId/propose-assignment', userAuth,proposeAssignment);
+router.post('/:projectId/propose-deallocation', userAuth,proposeDeallocation);
+router.get('/getProposals',userAuth, getEmployeeProposals)
+router.post('/processProposal', userAuth,processProposal)
+
 
 
 module.exports = router
