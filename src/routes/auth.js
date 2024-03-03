@@ -10,6 +10,7 @@ const { createSkill, updateSkill, deleteSkill, getAllSkillsForOrganization, link
 const { addSkillToUser, getUserSkills } = require('../controllers/user_skill')
 const {  createProject, updateProject, deleteProject, findAvailableEmployees, findEmployees } = require('../controllers/projects')
 const { proposeDeallocation, proposeAssignment, getEmployeeProposals, processProposal } = require('../controllers/proposals')
+const { viewEmployeeProjects, viewDepartmentProjects, viewProjectDetails } = require('../controllers/view_projects')
 
 
 
@@ -43,7 +44,9 @@ router.post('/:projectId/propose-assignment', userAuth,proposeAssignment);
 router.post('/:projectId/propose-deallocation', userAuth,proposeDeallocation);
 router.get('/getProposals',userAuth, getEmployeeProposals)
 router.post('/processProposal', userAuth,processProposal)
-
+router.get('/employee/projects', userAuth, viewEmployeeProjects);
+router.get('/department/projects', userAuth, viewDepartmentProjects);
+router.get('/projectDetails/:projectName', userAuth,viewProjectDetails);
 
 
 module.exports = router
