@@ -47,9 +47,28 @@ exports.addSkillToUser = async (req, res) => {
       [userId, skillId, level, experience]
     );
 
+    // Obține numele angajatului
+    const userNameQuery = 'SELECT username FROM users WHERE user_id = $1';
+    const userNameResult = await db.query(userNameQuery, [userId]);
+    const userName = userNameResult.rows[0].username;
+
+    // Adauga notificare pentru managerul de departament cu numele angajatului
+    const managerIdQuery = 'SELECT department_manager_id FROM departments WHERE department_id = $1';
+    const departmentIdResult = await db.query(managerIdQuery, [req.user.department_id]);
+    const managerId = departmentIdResult.rows[0].department_manager_id;
+
+    const notificationMessage = `${userName} has added a new skill that requires validation.`;
+
+    const notificationQuery = `
+      INSERT INTO notifications (user_id, message, type)
+      VALUES ($1, $2, 'skill_validation')
+    `;
+    const notificationValues = [managerId, notificationMessage];
+    await db.query(notificationQuery, notificationValues);
+
     res.status(201).json({
       success: true,
-      message: 'Skill assigned successfully.',
+      message: 'Skill assigned successfully. Manager notified for validation.',
     });
   } catch (error) {
     console.error(error.message);
@@ -58,12 +77,13 @@ exports.addSkillToUser = async (req, res) => {
 };
 
 
-// GET /api/users/skills - Obține lista cu toate abilitățile ale utilizatorului
+
+
+
 exports.getUserSkills = async (req, res) => {
     try {
       const userId = req.user.id;
   
-      // Obține lista cu toate abilitățile utilizatorului din tabela userskills
       const userSkills = await db.query(
         'SELECT skill_id, level, experience FROM userskills WHERE user_id = $1',
         [userId]
@@ -71,7 +91,6 @@ exports.getUserSkills = async (req, res) => {
   
       const skills = [];
   
-      // Pentru fiecare abilitate, obține detaliile din tabela skills
       for (const userSkill of userSkills.rows) {
         const skillDetails = await db.query(
           'SELECT skill_name FROM skills WHERE skill_id = $1',

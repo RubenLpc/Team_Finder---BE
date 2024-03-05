@@ -80,3 +80,36 @@ CREATE TABLE ProjectTeamStatus (
     status VARCHAR(20)
    
 );
+
+
+CREATE TABLE SkillEndorsements (
+  endorsement_id SERIAL PRIMARY KEY,
+  user_id INT ,
+  skill_id INT ,
+  description TEXT,
+  type VARCHAR(50) CHECK (type IN ('Training', 'Course', 'Certification', 'Project')),
+  title VARCHAR(255),
+  project_id INT
+  
+
+);
+
+
+CREATE TABLE notifications (
+  notification_id SERIAL PRIMARY KEY,
+  user_id INT NOT NULL,
+  message TEXT NOT NULL,
+  type VARCHAR(255) NOT NULL,
+  is_read BOOLEAN DEFAULT false,
+  created_at TIMESTAMP DEFAULT current_timestamp
+  
+);
+
+CREATE TABLE ProjectSkillRequirements (
+    requirement_id SERIAL PRIMARY KEY,
+    project_id INTEGER,
+    skill_id INTEGER,
+    min_level INTEGER CHECK (min_level BETWEEN 1 AND 5)
+    
+);
+

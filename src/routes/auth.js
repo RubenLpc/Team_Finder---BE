@@ -11,6 +11,11 @@ const { addSkillToUser, getUserSkills } = require('../controllers/user_skill')
 const {  createProject, updateProject, deleteProject, findAvailableEmployees, findEmployees } = require('../controllers/projects')
 const { proposeDeallocation, proposeAssignment, getEmployeeProposals, processProposal } = require('../controllers/proposals')
 const { viewEmployeeProjects, viewDepartmentProjects, viewProjectDetails } = require('../controllers/view_projects')
+const { addSkillEndorsement, validateSkill } = require('../controllers/endorsements')
+const { findExperts } = require('../controllers/openaiService')
+const { getUserNotifications } = require('../controllers/notifications')
+const { getSkillStatistics } = require('../controllers/skill_statistics')
+const { assignSkillsToProject } = require('../controllers/projectController')
 
 
 
@@ -47,6 +52,13 @@ router.post('/processProposal', userAuth,processProposal)
 router.get('/employee/projects', userAuth, viewEmployeeProjects);
 router.get('/department/projects', userAuth, viewDepartmentProjects);
 router.get('/projectDetails/:projectName', userAuth,viewProjectDetails);
+router.post('/skills/endorsements', userAuth,addSkillEndorsement);
+router.put('/validate-skill/:employeeName/:skillName', userAuth, validateSkill);
+router.post('/find-experts',userAuth, findExperts);
+router.get('/getNotifications',userAuth, getUserNotifications)
+router.get('/getSkillStatistics',userAuth, getSkillStatistics)
+router.post('/assignSkillsToProject/:projectName',userAuth, assignSkillsToProject)
+
 
 
 module.exports = router

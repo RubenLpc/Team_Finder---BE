@@ -42,6 +42,14 @@ exports.proposeAssignment = async (req, res) => {
       });
     }
 
+    // Obține id-ul managerului de departament din tabela departments
+    const departmentManagerIdResult = await db.query(
+      'SELECT department_manager_id FROM departments WHERE department_id = $1',
+      [user.rows.department_id]
+    );
+    const departmentManagerId =
+      departmentManagerIdResult.rows[0].department_manager_id;
+
     const proposalQuery = `
         INSERT INTO ProjectProposals (project_id, proposed_user_id, department_id, proposal_type, work_hours, roles, comments)
         VALUES ($1, $2, $3, 'assignment', $4, $5, $6)
@@ -64,6 +72,30 @@ exports.proposeAssignment = async (req, res) => {
     `;
     const teamStatusUpdateValues = [projectId, userId];
     await db.query(teamStatusUpdateQuery, teamStatusUpdateValues);
+    
+    // Notificare către Managerul de Departament
+    const departmentNotificationQuery = `
+      INSERT INTO notifications (user_id, message, type)
+      VALUES ($1, $2, $3);
+    `;
+    const departmentNotificationValues = [
+      departmentManagerId,
+      `Employee ${user.rows.username} proposed for assignment to Project ${projectId}.`,
+      'Assignment Proposal',
+    ];
+    await db.query(departmentNotificationQuery, departmentNotificationValues);
+
+    // Notificare către Angajatul Propus
+    const employeeNotificationQuery = `
+      INSERT INTO notifications (user_id, message, type)
+      VALUES ($1, $2, $3);
+    `;
+    const employeeNotificationValues = [
+      userId,
+      `You have been proposed for assignment to Project ${projectId}.`,
+      'Assignment Proposal',
+    ];
+    await db.query(employeeNotificationQuery, employeeNotificationValues);
 
     res.status(200).json({
       success: true,
@@ -137,6 +169,39 @@ exports.proposeDeallocation = async (req, res) => {
     `;
     const teamStatusUpdateValues = [projectId, userId];
     await db.query(teamStatusUpdateQuery, teamStatusUpdateValues);
+
+    // Obține id-ul managerului de departament din tabela departments
+    const departmentManagerIdResult = await db.query(
+      'SELECT department_manager_id FROM departments WHERE department_id = $1',
+      [user.rows.department_id]
+    );
+    const departmentManagerId =
+      departmentManagerIdResult.rows[0].department_manager_id;
+
+
+      // Notificare către Managerul de Departament
+    const departmentNotificationQuery = `
+    INSERT INTO notifications (user_id, message, type)
+    VALUES ($1, $2, $3);
+  `;
+  const departmentNotificationValues = [
+    departmentManagerId,
+    `Employee ${userId} proposed for deallocation from Project ${projectId}.`,
+    'Deallocation Proposal',
+  ];
+  await db.query(departmentNotificationQuery, departmentNotificationValues);
+
+  // Notificare către Angajatul Propus pentru Dealocare
+  const employeeNotificationQuery = `
+    INSERT INTO notifications (user_id, message, type)
+    VALUES ($1, $2, $3);
+  `;
+  const employeeNotificationValues = [
+    userId,
+    `You have been proposed for deallocation from Project ${projectId}.`,
+    'Deallocation Proposal',
+  ];
+  await db.query(employeeNotificationQuery, employeeNotificationValues);
 
     res.status(200).json({
       success: true,
