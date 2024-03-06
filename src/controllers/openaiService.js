@@ -1,6 +1,7 @@
 const OpenAI = require("openai");
+const{API_KEY} = require('../constants/index')
 const openai = new OpenAI({
-  apiKey: "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",
+  apiKey: API_KEY,
 });
 const db = require("../db");
 
@@ -57,8 +58,8 @@ exports.findExperts = async (req, res) => {
           { role: "system", content: "You are a helpful assistant." },
           { role: "user", content: req.body.additionalContext }, 
           { role: "user", content: JSON.stringify(usersWithSkills) }, 
-          { role: "user", content: "Aș vrea ca răspunsul tău să fie organizat astfel încât să-l pot converti în JSON" },
           { role: "user", content: "Aș vrea ca răspunsul tău sa fie bazat pe skill-uri si pe experienta si level(level 5 fiind cel mai ridicat), sa mi-i returnezi in ordine fara texte suplimentare, primul sa fie cel mai pregatit" },
+          { role: "user", content: "Aș vrea ca răspunsul tău să fie fara niciun text suplimentar si sa fie organizat astfel încât să-l pot converti în JSON" },
 
         ],
         format: "json",

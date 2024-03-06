@@ -41,10 +41,43 @@ exports.proposeAssignment = async (req, res) => {
         error: `Invalid workHours. Should be between 1 and ${remainingHours}.`,
       });
     }
+  /*
+    const skillRequirementsQuery = `
+      SELECT skill_id, min_level
+      FROM ProjectSkillRequirements
+      WHERE project_id = $1;
+    `;
+    const skillRequirementsValues = [projectId];
+    const skillRequirementsResult = await db.query(
+      skillRequirementsQuery,
+      skillRequirementsValues
+    );
+    const skillRequirements = skillRequirementsResult.rows;
 
+    const userSkillsQuery = `
+      SELECT skill_id, level
+      FROM UserSkills
+      WHERE user_id = $1;
+    `;
+    const userSkillsValues = [userId];
+    const userSkillsResult = await db.query(userSkillsQuery, userSkillsValues);
+    const userSkills = userSkillsResult.rows;
+
+    for (const requirement of skillRequirements) {
+      const matchingSkill = userSkills.find(
+        (skill) => skill.skill_id === requirement.skill_id
+      );
+
+      if (!matchingSkill || matchingSkill.level < requirement.min_level) {
+        return res.status(400).json({
+          error: `User ${userId} does not meet the skill requirement for skill_id ${requirement.skill_id} at the required level ${requirement.min_level}.`,
+        });
+      }
+    }
+    */
     // Obține id-ul managerului de departament din tabela departments
     const departmentManagerIdResult = await db.query(
-      'SELECT department_manager_id FROM departments WHERE department_id = $1',
+      "SELECT department_manager_id FROM departments WHERE department_id = $1",
       [user.rows.department_id]
     );
     const departmentManagerId =
@@ -72,7 +105,7 @@ exports.proposeAssignment = async (req, res) => {
     `;
     const teamStatusUpdateValues = [projectId, userId];
     await db.query(teamStatusUpdateQuery, teamStatusUpdateValues);
-    
+
     // Notificare către Managerul de Departament
     const departmentNotificationQuery = `
       INSERT INTO notifications (user_id, message, type)
@@ -81,7 +114,7 @@ exports.proposeAssignment = async (req, res) => {
     const departmentNotificationValues = [
       departmentManagerId,
       `Employee ${user.rows.username} proposed for assignment to Project ${projectId}.`,
-      'Assignment Proposal',
+      "Assignment Proposal",
     ];
     await db.query(departmentNotificationQuery, departmentNotificationValues);
 
@@ -93,7 +126,7 @@ exports.proposeAssignment = async (req, res) => {
     const employeeNotificationValues = [
       userId,
       `You have been proposed for assignment to Project ${projectId}.`,
-      'Assignment Proposal',
+      "Assignment Proposal",
     ];
     await db.query(employeeNotificationQuery, employeeNotificationValues);
 
@@ -172,36 +205,35 @@ exports.proposeDeallocation = async (req, res) => {
 
     // Obține id-ul managerului de departament din tabela departments
     const departmentManagerIdResult = await db.query(
-      'SELECT department_manager_id FROM departments WHERE department_id = $1',
+      "SELECT department_manager_id FROM departments WHERE department_id = $1",
       [user.rows.department_id]
     );
     const departmentManagerId =
       departmentManagerIdResult.rows[0].department_manager_id;
 
-
-      // Notificare către Managerul de Departament
+    // Notificare către Managerul de Departament
     const departmentNotificationQuery = `
     INSERT INTO notifications (user_id, message, type)
     VALUES ($1, $2, $3);
   `;
-  const departmentNotificationValues = [
-    departmentManagerId,
-    `Employee ${userId} proposed for deallocation from Project ${projectId}.`,
-    'Deallocation Proposal',
-  ];
-  await db.query(departmentNotificationQuery, departmentNotificationValues);
+    const departmentNotificationValues = [
+      departmentManagerId,
+      `Employee ${userId} proposed for deallocation from Project ${projectId}.`,
+      "Deallocation Proposal",
+    ];
+    await db.query(departmentNotificationQuery, departmentNotificationValues);
 
-  // Notificare către Angajatul Propus pentru Dealocare
-  const employeeNotificationQuery = `
+    // Notificare către Angajatul Propus pentru Dealocare
+    const employeeNotificationQuery = `
     INSERT INTO notifications (user_id, message, type)
     VALUES ($1, $2, $3);
   `;
-  const employeeNotificationValues = [
-    userId,
-    `You have been proposed for deallocation from Project ${projectId}.`,
-    'Deallocation Proposal',
-  ];
-  await db.query(employeeNotificationQuery, employeeNotificationValues);
+    const employeeNotificationValues = [
+      userId,
+      `You have been proposed for deallocation from Project ${projectId}.`,
+      "Deallocation Proposal",
+    ];
+    await db.query(employeeNotificationQuery, employeeNotificationValues);
 
     res.status(200).json({
       success: true,
@@ -291,7 +323,10 @@ exports.processProposal = async (req, res) => {
     const { project_id, proposed_user_id, work_hours, roles, comments } =
       proposalResult.rows[0];
 
-    if (decision === "accepted" && proposalResult.rows[0].proposal_type === "assignment") {
+    if (
+      decision === "accepted" &&
+      proposalResult.rows[0].proposal_type === "assignment"
+    ) {
       const teamStatusUpdateQuery = `
         INSERT INTO ProjectTeamStatus (project_id, user_id, status)
         VALUES ($1, $2, 'active')
@@ -300,7 +335,10 @@ exports.processProposal = async (req, res) => {
       `;
       const teamStatusUpdateValues = [project_id, proposed_user_id];
       await db.query(teamStatusUpdateQuery, teamStatusUpdateValues);
-    } else if (decision === "accepted" && proposalResult.rows[0].proposal_type === "deallocation") {
+    } else if (
+      decision === "accepted" &&
+      proposalResult.rows[0].proposal_type === "deallocation"
+    ) {
       const teamStatusUpdateQuery = `
         UPDATE ProjectTeamStatus
         SET status = 'past'
@@ -327,5 +365,3 @@ exports.processProposal = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
-
-

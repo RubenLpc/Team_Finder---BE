@@ -113,3 +113,11 @@ CREATE TABLE ProjectSkillRequirements (
     
 );
 
+CREATE TABLE ProposedSkills (
+    proposed_skill_id SERIAL PRIMARY KEY,
+    user_id INT,
+    skill_id INT,
+    level INT CHECK (level BETWEEN 1 AND 5),
+    experience VARCHAR(20) CHECK (experience IN ('0-6 months', '6-12 months', '1-2 years', '2-4 years', '4-7 years', '>7 years'))
+  
+);

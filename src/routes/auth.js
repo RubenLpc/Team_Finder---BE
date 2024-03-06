@@ -16,6 +16,7 @@ const { findExperts } = require('../controllers/openaiService')
 const { getUserNotifications } = require('../controllers/notifications')
 const { getSkillStatistics } = require('../controllers/skill_statistics')
 const { assignSkillsToProject } = require('../controllers/projectController')
+const { getSkillUpgradeProposals } = require('../controllers/skillProposal')
 
 
 
@@ -58,6 +59,7 @@ router.post('/find-experts',userAuth, findExperts);
 router.get('/getNotifications',userAuth, getUserNotifications)
 router.get('/getSkillStatistics',userAuth, getSkillStatistics)
 router.post('/assignSkillsToProject/:projectName',userAuth, assignSkillsToProject)
+router.get('/getSkillUpgradeProposals',userAuth, getSkillUpgradeProposals)
 
 
 
