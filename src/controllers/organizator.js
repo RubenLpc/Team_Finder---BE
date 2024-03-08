@@ -25,13 +25,6 @@ exports.assignEmployeeRole = async (req, res) => {
     const { role } = req.body;
     const { employeeName } = req.params;
 
-    if (req.user.role !== "Organization Admin") {
-      return res.status(403).json({
-        error:
-          "Access forbidden. Only Organization Admins can assign roles to employees.",
-      });
-    }
-
     const employeeCheck = await db.query(
       "SELECT * FROM users WHERE username = $1",
       [employeeName]
@@ -71,7 +64,7 @@ exports.assignEmployeeRole = async (req, res) => {
 
 exports.getOrganizationTeamRoles = async (req, res) => {
   try {
-    const { organization_id } = req.user; // Preiați ID-ul organizației din obiectul de utilizator
+    const { organization_id } = req.user; 
 
     const roles = await db.query(
       'SELECT * FROM TeamRoles WHERE organization_id = $1',
@@ -91,7 +84,7 @@ exports.getOrganizationTeamRoles = async (req, res) => {
 exports.createTeamRole = async (req, res) => {
   try {
     const { role_name } = req.body;
-    const { organization_id } = req.user; // Preiați ID-ul organizației din obiectul de utilizator
+    const { organization_id } = req.user; 
 
     const existingRole = await db.query(
       "SELECT * FROM TeamRoles WHERE role_name = $1 AND organization_id = $2",

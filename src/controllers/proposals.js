@@ -13,14 +13,6 @@ const getRemainingHours = async (userId) => {
 exports.proposeAssignment = async (req, res) => {
   try {
     const projectId = req.params.projectId;
-    const projectManager = req.user.role === "Project Manager";
-
-    if (!projectManager) {
-      return res.status(403).json({
-        error:
-          "Access forbidden. Only Project Managers can propose team members for projects.",
-      });
-    }
 
     const { userId, workHours, roles, comments } = req.body;
     const user = await db.query("SELECT * FROM users where user_id = $1 ", [
@@ -169,15 +161,7 @@ exports.proposeAssignment = async (req, res) => {
 exports.proposeDeallocation = async (req, res) => {
   try {
     const projectId = req.params.projectId;
-    const projectManager = req.user.role === "Project Manager";
     const departmentId = req.user.department_id;
-
-    if (!projectManager) {
-      return res.status(403).json({
-        error:
-          "Access forbidden. Only Project Managers can propose deallocation of team members from projects.",
-      });
-    }
 
     const { userId, deallocationReason } = req.body;
 
@@ -209,28 +193,27 @@ exports.proposeDeallocation = async (req, res) => {
     const proposalValues = [
       projectId,
       userId,
-      departmentId,
+      userExistsResult.rows[0].department_id,
       deallocationReason,
     ];
     const proposalResult = await db.query(proposalQuery, proposalValues);
     const proposalId = proposalResult.rows[0].proposal_id;
     const teamStatusUpdateQuery = `
-      INSERT INTO ProjectTeamStatus (project_id, user_id, status)
-      VALUES ($1, $2, 'proposed')
-      ON CONFLICT (project_id, user_id) DO NOTHING;
-    `;
+  INSERT INTO ProjectTeamStatus (project_id, user_id, status)
+  VALUES ($1, $2, 'proposed');
+  
+`;
+
     const teamStatusUpdateValues = [projectId, userId];
     await db.query(teamStatusUpdateQuery, teamStatusUpdateValues);
 
-    // Obține id-ul managerului de departament din tabela departments
     const departmentManagerIdResult = await db.query(
       "SELECT department_manager_id FROM departments WHERE department_id = $1",
-      [user.rows.department_id]
+      [userExistsResult.rows[0].department_id]
     );
     const departmentManagerId =
       departmentManagerIdResult.rows[0].department_manager_id;
 
-    // Notificare către Managerul de Departament
     const departmentNotificationQuery = `
     INSERT INTO notifications (user_id, message, type)
     VALUES ($1, $2, $3);
@@ -242,7 +225,6 @@ exports.proposeDeallocation = async (req, res) => {
     ];
     await db.query(departmentNotificationQuery, departmentNotificationValues);
 
-    // Notificare către Angajatul Propus pentru Dealocare
     const employeeNotificationQuery = `
     INSERT INTO notifications (user_id, message, type)
     VALUES ($1, $2, $3);
@@ -271,14 +253,7 @@ exports.proposeDeallocation = async (req, res) => {
 
 exports.getEmployeeProposals = async (req, res) => {
   try {
-    const departmentManager = req.user.role === "Department Manager";
     const departmentId = req.user.department_id;
-
-    if (!departmentManager) {
-      return res.status(403).json({
-        error: "Access forbidden. Only Department Managers can view proposals.",
-      });
-    }
 
     const query = `
         SELECT *
@@ -301,15 +276,7 @@ exports.getEmployeeProposals = async (req, res) => {
 
 exports.processProposal = async (req, res) => {
   try {
-    const departmentManager = req.user.role === "Department Manager";
     const { proposalId, decision } = req.body;
-
-    if (!departmentManager) {
-      return res.status(403).json({
-        error:
-          "Access forbidden. Only Department Managers can process proposals.",
-      });
-    }
 
     if (!proposalId || !decision) {
       return res.status(400).json({
@@ -339,73 +306,97 @@ exports.processProposal = async (req, res) => {
       });
     }
 
-    const { project_id, proposed_user_id, work_hours, roles, comments } =
-      proposalResult.rows[0];
+    const {
+      project_id,
+      proposed_user_id,
+      work_hours,
+      roles,
+      comments,
+      proposal_type,
+    } = proposalResult.rows[0];
 
-    if (
-      decision === "accepted" &&
-      proposalResult.rows[0].proposal_type === "assignment"
-    ) {
-      // Adaugă utilizatorul în echipa proiectului
-      const addToTeamQuery = `
-        INSERT INTO ProjectTeam (project_id, user_id, work_hours, roles, comments, department_id)
-        VALUES ($1, $2, $3, $4, $5, $6);
-      `;
-      const addToTeamValues = [
-        project_id,
-        proposed_user_id,
-        work_hours,
-        roles,
-        comments,
-        req.user.department_id,
-      ];
-      await db.query(addToTeamQuery, addToTeamValues);
+    if (decision === "accepted") {
+      if (proposal_type === "assignment") {
+        const addToTeamQuery = `
+            INSERT INTO ProjectTeam (project_id, user_id, work_hours, roles, comments, department_id)
+            VALUES ($1, $2, $3, $4, $5, $6);
+          `;
+        const addToTeamValues = [
+          project_id,
+          proposed_user_id,
+          work_hours,
+          roles,
+          comments,
+          req.user.department_id,
+        ];
+        await db.query(addToTeamQuery, addToTeamValues);
 
-      // Actualizează starea membrului echipei în tabela ProjectTeamStatus
-      const teamStatusUpdateQuery = `
-      UPDATE ProjectTeamStatus
-      SET status = 'active'
-      WHERE project_id = $1 AND user_id = $2;
-      `;
-      const teamStatusUpdateValues = [project_id, proposed_user_id];
-      await db.query(teamStatusUpdateQuery, teamStatusUpdateValues);
+        const teamStatusUpdateQuery = `
+            UPDATE ProjectTeamStatus
+            SET status = 'active'
+            WHERE project_id = $1 AND user_id = $2;
+          `;
+        const teamStatusUpdateValues = [project_id, proposed_user_id];
+        await db.query(teamStatusUpdateQuery, teamStatusUpdateValues);
 
-      // Actualizează orele disponibile ale utilizatorului în tabela users
-      const updateUserAvailabilityQuery = `
-        UPDATE users
-        SET availability_hours = availability_hours + $1
-        WHERE user_id = $2;
-      `;
-      const updateUserAvailabilityValues = [work_hours, proposed_user_id];
-      await db.query(updateUserAvailabilityQuery, updateUserAvailabilityValues);
-    } else if (
-      decision === "accepted" &&
-      proposalResult.rows[0].proposal_type === "deallocation"
-    ) {
-      // Actualizează starea membrului echipei în tabela ProjectTeamStatus la "past"
-      const teamStatusUpdateQuery = `
-        UPDATE ProjectTeamStatus
-        SET status = 'past'
-        WHERE project_id = $1 AND user_id = $2;
-      `;
-      const teamStatusUpdateValues = [project_id, proposed_user_id];
-      await db.query(teamStatusUpdateQuery, teamStatusUpdateValues);
+        const updateUserAvailabilityQuery = `
+            UPDATE users
+            SET availability_hours = availability_hours + $1
+            WHERE user_id = $2;
+          `;
+        const updateUserAvailabilityValues = [work_hours, proposed_user_id];
+        await db.query(
+          updateUserAvailabilityQuery,
+          updateUserAvailabilityValues
+        );
+      } else if (proposal_type === "deallocation") {
+        const getWorkHoursQuery = `
+            SELECT work_hours
+            FROM ProjectTeam
+            WHERE project_id = $1 AND user_id = $2;
+          `;
+        const getWorkHoursValues = [project_id, proposed_user_id];
+        const workHoursResult = await db.query(
+          getWorkHoursQuery,
+          getWorkHoursValues
+        );
+        const allocatedWorkHours = workHoursResult.rows[0].work_hours;
 
-      // Actualizează orele disponibile ale utilizatorului în tabela users
-      const updateUserAvailabilityQuery = `
-        UPDATE users
-        SET availability_hours = availability_hours - $1
-        WHERE user_id = $2;
-      `;
-      const updateUserAvailabilityValues = [work_hours, proposed_user_id];
-      await db.query(updateUserAvailabilityQuery, updateUserAvailabilityValues);
+        const teamStatusUpdateQuery = `
+            UPDATE ProjectTeamStatus
+            SET status = 'past'
+            WHERE project_id = $1 AND user_id = $2;
+          `;
+        const teamStatusUpdateValues = [project_id, proposed_user_id];
+        await db.query(teamStatusUpdateQuery, teamStatusUpdateValues);
+
+        const updateUserAvailabilityQuery = `
+            UPDATE users
+            SET availability_hours = availability_hours - $1
+            WHERE user_id = $2;
+          `;
+        const updateUserAvailabilityValues = [
+          allocatedWorkHours,
+          proposed_user_id,
+        ];
+        await db.query(
+          updateUserAvailabilityQuery,
+          updateUserAvailabilityValues
+        );
+
+        const removeFromTeamQuery = `
+            DELETE FROM ProjectTeam
+            WHERE project_id = $1 AND user_id = $2;
+          `;
+        const removeFromTeamValues = [project_id, proposed_user_id];
+        await db.query(removeFromTeamQuery, removeFromTeamValues);
+      }
     }
 
-    // Șterge propunerea după ce a fost procesată
     const deleteProposalQuery = `
-      DELETE FROM ProjectProposals
-      WHERE proposal_id = $1;
-    `;
+        DELETE FROM ProjectProposals
+        WHERE proposal_id = $1;
+      `;
     const deleteProposalValues = [proposalId];
     await db.query(deleteProposalQuery, deleteProposalValues);
 

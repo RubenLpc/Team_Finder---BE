@@ -4,15 +4,6 @@ exports.create_departament = async (req, res) => {
   try {
     const { department_name } = req.body;
 
-    const isOrgAdmin = req.user.role === "Organization Admin";
-
-    if (!isOrgAdmin) {
-      return res.status(403).json({
-        error:
-          "Access forbidden. Only Organization Admins can perform this action.",
-      });
-    }
-
     const result = await db.query(
       "INSERT INTO departments (department_name, organization_id) VALUES ($1, $2) RETURNING *",
       [department_name, req.user.organization_id]
@@ -33,13 +24,6 @@ exports.assignManagerToDepartment = async (req, res) => {
   try {
     const { manager_name } = req.body;
     const { departmentName } = req.params;
-   console.log(req.user)
-    if (req.user.role !== "Organization Admin") {
-      return res.status(403).json({
-        error: "Access forbidden. Only Organization Admins can perform this action.",
-        
-      });
-    }
 
     const managerCheck = await db.query(
       "SELECT * FROM users WHERE username = $1 AND role = 'Department Manager'",
@@ -117,12 +101,6 @@ exports.addEmployeeToDepartment = async (req, res) => {
     const { employeeName } = req.body;
     
     let departmentId = req.user.department_id;
-
-    if (req.user.role !== "Department Manager") {
-      return res.status(403).json({
-        error: "Access forbidden. Only Department Managers can add employees to the department.",
-      });
-    }
 
     const employeeCheck = await db.query(
       "SELECT * FROM users WHERE username = $1",

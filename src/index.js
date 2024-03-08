@@ -17,9 +17,18 @@
 
  //import routes
  const authRoutes = require('./routes/auth')
+ const departments = require('./routes/departments')
+ const nice_to_have = require('./routes/nice_to_have')
+ const organizator = require('./routes/organizator')
+ const projects = require('./routes/projects')
+ const proposals = require('./routes/proposals')
+ const skills = require('./routes/skills')
+ const user_skills = require('./routes/user_skills')
+ const view_projects = require('./routes/view_projects')
 
  //initialize routes
- app.use('/api', authRoutes)
+ 
+ app.use('/api',[authRoutes, departments, nice_to_have, organizator, projects, proposals, skills, user_skills, view_projects])
 
  
  

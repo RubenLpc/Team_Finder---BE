@@ -1,53 +1,82 @@
 const db = require('../db')
 
 exports.viewEmployeeProjects = async (req, res) => {
-    try {
-      const userId = req.user.id;
-  
-      const currentProjectsQuery = `
-        SELECT Projects.project_name, ProjectTeam.roles, Projects.technology_stack
-        FROM Projects, ProjectTeam
-        WHERE Projects.project_id = ProjectTeam.project_id
-          AND ProjectTeam.user_id = $1
+  try {
+    const userId = req.user.id;
+    const isProjectManager = await isUserProjectManager(userId);
+
+    let currentProjectsQuery;
+    let pastProjectsQuery;
+
+    if (isProjectManager) {
+      // Dacă utilizatorul este Project Manager, afișează proiectele create sau gestionate
+      currentProjectsQuery = `
+        SELECT project_name, technology_stack
+        FROM Projects
+        WHERE project_manager_id = $1 AND status <> 'Closed';
+      `;
+
+      pastProjectsQuery = `
+        SELECT project_name, technology_stack
+        FROM Projects
+        WHERE project_manager_id = $1 AND status = 'Closed';
+      `;
+    } else {
+      // Dacă nu este Project Manager, afișează proiectele active și cele închise la care este implicat
+      currentProjectsQuery = `
+        SELECT Projects.project_name, Projects.technology_stack
+        FROM Projects, ProjectTeamStatus
+        WHERE Projects.project_id = ProjectTeamStatus.project_id
+          AND ProjectTeamStatus.user_id = $1
+          AND ProjectTeamStatus.status = 'active'
           AND Projects.status <> 'Closed';
       `;
-  
-      const currentProjects = await db.query(currentProjectsQuery, [userId]);
 
-      const pastProjectsQuery = `
-        SELECT Projects.project_name, ProjectTeam.roles, Projects.technology_stack
-        FROM Projects, ProjectTeam
-        WHERE Projects.project_id = ProjectTeam.project_id
-          AND ProjectTeam.user_id = $1
-          AND Projects.status = 'Closed';
+      pastProjectsQuery = `
+        SELECT Projects.project_name, Projects.technology_stack
+        FROM Projects, ProjectTeamStatus
+        WHERE (Projects.project_id = ProjectTeamStatus.project_id
+          AND ProjectTeamStatus.user_id = $1
+          AND ProjectTeamStatus.status = 'past')
+          OR (Projects.project_manager_id = $1 AND Projects.status = 'Closed');
       `;
-  
-      const pastProjects = await db.query(pastProjectsQuery, [userId]);
-   
-      res.status(200).json({
-        success: true,
-        employeeProjects: {
-          currentProjects : currentProjects.rows,
-          pastProjects : pastProjects.rows,
-        },
-      });
-    } catch (error) {
-      console.error(error.message);
-      res.status(500).json({ error: error.message });
     }
-  };
+
+    const currentProjects = await db.query(currentProjectsQuery, [userId]);
+    const pastProjects = await db.query(pastProjectsQuery, [userId]);
+
+    res.status(200).json({
+      success: true,
+      employeeProjects: {
+        currentProjects: currentProjects.rows,
+        pastProjects: pastProjects.rows,
+      },
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+// Funcție pentru a verifica dacă utilizatorul este Project Manager
+async function isUserProjectManager(userId) {
+  const projectManagerQuery = `
+    SELECT project_manager_id
+    FROM Projects
+    WHERE project_manager_id = $1;
+  `;
+  const projectManagerResult = await db.query(projectManagerQuery, [userId]);
+  return projectManagerResult.rows.length > 0;
+}
+
+
+
 
 
   exports.viewDepartmentProjects = async (req, res) => {
     try {
-      const departmentManager = req.user.role === 'Department Manager';
       const departmentId = req.user.department_id;
-  
-      if (!departmentManager) {
-        return res.status(403).json({
-          error: 'Access forbidden. Only Department Managers can view department projects.',
-        });
-      }
   
       const departmentMembersQuery = `
         SELECT user_id
@@ -111,7 +140,7 @@ exports.viewEmployeeProjects = async (req, res) => {
   
   exports.viewProjectDetails = async (req, res) => {
     try {
-        const projectName = req.params.projectName; // Presupunând că parametrul numelui proiectului este inclus în URL
+        const projectName = req.params.projectName; 
 
         const projectDetailsQuery = `
             SELECT
@@ -185,12 +214,3 @@ exports.viewEmployeeProjects = async (req, res) => {
         res.status(500).json({ error: error.message });
     }
 };
-
-
-
-  
-  
-  
-  
-
-  

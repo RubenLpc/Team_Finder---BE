@@ -47,12 +47,10 @@ exports.addSkillToUser = async (req, res) => {
       [userId, skillId, level, experience]
     );
 
-    // Obține numele angajatului
     const userNameQuery = 'SELECT username FROM users WHERE user_id = $1';
     const userNameResult = await db.query(userNameQuery, [userId]);
     const userName = userNameResult.rows[0].username;
 
-    // Adauga notificare pentru managerul de departament cu numele angajatului
     const managerIdQuery = 'SELECT department_manager_id FROM departments WHERE department_id = $1';
     const departmentIdResult = await db.query(managerIdQuery, [req.user.department_id]);
     const managerId = departmentIdResult.rows[0].department_manager_id;

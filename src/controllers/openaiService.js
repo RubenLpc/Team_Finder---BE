@@ -58,7 +58,7 @@ exports.findExperts = async (req, res) => {
           { role: "system", content: "You are a helpful assistant." },
           { role: "user", content: req.body.additionalContext }, 
           { role: "user", content: JSON.stringify(usersWithSkills) }, 
-          { role: "user", content: "Aș vrea ca răspunsul tău sa fie bazat pe skill-uri si pe experienta si level(level 5 fiind cel mai ridicat), sa mi-i returnezi in ordine fara texte suplimentare, primul sa fie cel mai pregatit" },
+          { role: "user", content: "Aș vrea ca răspunsul tău sa fie bazat pe skill-uri si pe experienta si level(level 5 fiind cel mai ridicat), sa mi-i returnezi in ordine fara texte suplimentare, primul sa fie cel mai pregatit, cei care nu au skill-rui sau nu au skill-uri in domeniul precizat, sa nu ii recomanzi" },
           { role: "user", content: "Aș vrea ca răspunsul tău să fie fara niciun text suplimentar si sa fie organizat astfel încât să-l pot converti în JSON" },
 
         ],

@@ -6,7 +6,6 @@ exports.addSkillEndorsement = async (req, res) => {
       const { skillId, type, title, description, project_name } = req.body;
       const employeeId = req.user.id;
   
-      // Verifică dacă angajatul are acest skill asignat la profil
       const skillAssignmentCheckQuery = `
         SELECT 1
         FROM UserSkills
@@ -30,7 +29,6 @@ exports.addSkillEndorsement = async (req, res) => {
         const addEndorsementValues = [employeeId, skillId, type, title, description];
         addedEndorsement = await db.query(addEndorsementQuery, addEndorsementValues);
       } else {
-        // Obține project_id asociat project_name
         const projectIdQuery = `
           SELECT project_id
           FROM Projects
@@ -105,7 +103,6 @@ exports.addSkillEndorsement = async (req, res) => {
   
       const { skillName, employeeName } = req.params;
   
-      // Validează abilitatea
       const validateSkillQuery = `
         UPDATE UserSkills
         SET validated = true
