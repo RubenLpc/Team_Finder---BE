@@ -1,12 +1,16 @@
-const { Pool } = require('pg')
+const { Pool } = require("pg");
+const fs = require('fs');
+
 const pool = new Pool({
-    user: 'postgres',
-    host: 'localhost',
-    database: 'team_finder',
-    password: 'postgres',
-    port: 5432
-})
+    host: "atc-2024-postgresql-server.postgres.database.azure.com",
+    user: "cybercreators_lfg7uh",
+    password: "ATC2024!SecurePassword",
+    database: "atc-2024-cyber-creators-postgresql-database",
+    port: 5432,
+    ssl: true,
+});
+
 
 module.exports = {
-    query: (text, params) => pool.query(text, params)
-}
+  query: (text, params) => pool.query(text, params),
+};

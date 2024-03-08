@@ -5,7 +5,7 @@ const { valiodationMiddleware } = require('../middlewares/validation-middleware'
 const {userAuth} = require('../middlewares/auth-middleware')
 const router = Router()
 const { create_departament, assignManagerToDepartment, addEmployeeToDepartment, getDepartmentMembers, deleteDepartment } = require('../controllers/departaments')
-const { getOrganizationMembers, assignEmployeeRole } = require('../controllers/organizator')
+const { getOrganizationMembers, assignEmployeeRole, getOrganizationTeamRoles, createTeamRole, updateTeamRole, deleteTeamRole } = require('../controllers/organizator')
 const { createSkill, updateSkill, deleteSkill, getAllSkillsForOrganization, linkSkillToDepartment } = require('../controllers/skills')
 const { addSkillToUser, getUserSkills } = require('../controllers/user_skill')
 const {  createProject, updateProject, deleteProject, findAvailableEmployees, findEmployees } = require('../controllers/projects')
@@ -17,11 +17,11 @@ const { getUserNotifications } = require('../controllers/notifications')
 const { getSkillStatistics } = require('../controllers/skill_statistics')
 const { assignSkillsToProject } = require('../controllers/projectController')
 const { getSkillUpgradeProposals } = require('../controllers/skillProposal')
+const { checkOrganizationAdmin } = require('../validators/roles')
 
 
 
 
-router.get('/get-users',getUsers)
 router.get('/protected', userAuth, protected) 
 router.post('/employee/signup', userAuth,registerValidation, valiodationMiddleware,register)
 router.post('/login', loginValidation, valiodationMiddleware, login)
@@ -60,7 +60,13 @@ router.get('/getNotifications',userAuth, getUserNotifications)
 router.get('/getSkillStatistics',userAuth, getSkillStatistics)
 router.post('/assignSkillsToProject/:projectName',userAuth, assignSkillsToProject)
 router.get('/getSkillUpgradeProposals',userAuth, getSkillUpgradeProposals)
-
+  
+router.get('/organization/team-roles', userAuth,checkOrganizationAdmin, getOrganizationTeamRoles);
+router.post('/organization/create/team-roles',userAuth, checkOrganizationAdmin, createTeamRole);
+router.put('/organization/update/team-roles/:role_name',userAuth, checkOrganizationAdmin, updateTeamRole);
+router.delete('/organization/delete/team-roles/:role_name',userAuth, checkOrganizationAdmin, deleteTeamRole);
+  
+  
 
 
 module.exports = router

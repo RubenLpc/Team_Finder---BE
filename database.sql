@@ -4,6 +4,25 @@ create table users(
     username varchar(255) not null,
     email varchar(255) unique not null,
     password varchar(255) not null,
+    role varchar(255),
+    organization_id INTEGER,
+    department_id INTEGER,
+    availability_status varchar(255) DEFAULT 'Fully Available',
+    availability_hours INTEGER
+
+    );
+
+    create table organizations(
+    organization_id serial primary key,
+    organization_name varchar(255) not null,
+    headquarter_address varchar(255) not null
+    );
+
+     create table departments(
+    department_id serial primary key,
+    department_name varchar(255),
+    organization_id INTEGER ,
+    department_manager_id INTEGER
     );
 
 CREATE TABLE Skills (
@@ -11,9 +30,14 @@ CREATE TABLE Skills (
   category_id INTEGER,
   skill_name VARCHAR(255) NOT NULL,
   description TEXT NOT NULL,
-  author_id INTEGER
+  author_id INTEGER,
   departments VARCHAR(255) 
 
+);
+
+CREATE TABLE SkillDepartments (
+  skill_id INTEGER,
+  department_id INTEGER
 );
 
 CREATE TABLE SkillCategories (
@@ -28,7 +52,15 @@ CREATE TABLE UserSkills (
     skill_id INT,
     level INT CHECK (level BETWEEN 1 AND 5),
     experience VARCHAR(20) CHECK (experience IN ('0-6 months', '6-12 months', '1-2 years', '2-4 years', '4-7 years', '>7 years')),
+    validated BOOLEAN
     
+);
+
+CREATE TABLE TeamRoles (
+  role_id SERIAL PRIMARY KEY,
+  organization_id INTEGER NOT NULL,
+  role_name VARCHAR(255) NOT NULL
+
 );
 
 
@@ -47,7 +79,8 @@ CREATE TABLE Projects (
     deadline_date DATE,
     status VARCHAR(20) NOT NULL CHECK (status IN ('Not Started', 'Starting', 'In Progress', 'Closing', 'Closed')),
     general_description TEXT,
-    technology_stack TEXT
+    technology_stack TEXT,
+    project_manager_id INTEGER
 );
 
 CREATE TABLE ProjectTeam (
@@ -55,7 +88,8 @@ CREATE TABLE ProjectTeam (
     user_id INT,
     work_hours INT,
     roles VARCHAR(255),
-    comments TEXT
+    comments TEXT,
+    department_id INTEGER
  
 );
 
@@ -66,7 +100,7 @@ CREATE TABLE ProjectProposals (
     department_id INTEGER,
     proposal_type VARCHAR(20), 
     deallocation_reason TEXT,
-     work_hours INT,
+    work_hours INT,
     roles VARCHAR(255),
     comments TEXT
     
@@ -93,6 +127,7 @@ CREATE TABLE SkillEndorsements (
   
 
 );
+
 
 
 CREATE TABLE notifications (

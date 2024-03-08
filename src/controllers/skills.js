@@ -2,14 +2,28 @@ const db = require("../db");
 
 exports.createSkill = async (req, res) => {
   try {
-    const { category_name, skill_name, description, departments } = req.body;
+    const { category_name, skill_name, description } = req.body;
     const author_id = req.user.id;
+    const departmentNames = req.body.departments;
 
     if (req.user.role !== "Department Manager") {
       return res.status(403).json({
         error: "Access forbidden. Only Department Managers can create skills.",
       });
     }
+
+    for (const departmentName of departmentNames) {
+      const department = await db.query(
+        "SELECT * FROM departments WHERE department_name = $1 AND department_manager_id = $2",
+        [departmentName, req.user.id]
+      );
+
+      if(department.rows.length === 0)
+      {
+        return res.status(400).json({ error: `Invalid department: ${departmentName}` });
+      }
+    }
+      
 
     const existingSkill = await db.query(
       "SELECT * FROM skills WHERE skill_name = $1",
@@ -39,9 +53,26 @@ exports.createSkill = async (req, res) => {
     }
 
     const result = await db.query(
-      "INSERT INTO skills (category_id, skill_name, description, author_id, departments) VALUES ($1, $2, $3, $4, $5) RETURNING *",
-      [category_id, skill_name, description, author_id, departments]
+      "INSERT INTO skills (category_id, skill_name, description, author_id) VALUES ($1, $2, $3, $4) RETURNING *",
+      [category_id, skill_name, description, author_id]
     );
+
+    const skill_id = result.rows[0].skill_id;
+
+    for (const departmentName of departmentNames) {
+      const department = await db.query(
+        "SELECT * FROM departments WHERE department_name = $1 AND department_manager_id = $2",
+        [departmentName, req.user.id]
+      );
+
+      if (department.rows.length > 0) {
+        await db.query(
+          "INSERT INTO SkillDepartments (skill_id, department_id) VALUES ($1, $2)",
+          [skill_id, department.rows[0].department_id]
+        );
+      } 
+    }
+   
 
     res.status(201).json({
       success: true,
@@ -52,6 +83,7 @@ exports.createSkill = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 exports.updateSkill = async (req, res) => {
   try {
     const {
@@ -69,6 +101,20 @@ exports.updateSkill = async (req, res) => {
       });
     }
 
+    // Verifică dacă utilizatorul este manager al noului departament
+    if (newDepartment) {
+      const isDepartmentManager = await db.query(
+        "SELECT * FROM departments WHERE department_manager_id = $1 AND department_name = $2",
+        [author_id, newDepartment]
+      );
+
+      if (isDepartmentManager.rows.length === 0) {
+        return res.status(403).json({
+          error: "Access forbidden. You are not the manager of the specified department.",
+        });
+      }
+    }
+
     // Verifică dacă abilitatea există și a fost creată de către utilizatorul curent
     const existingSkill = await db.query(
       "SELECT * FROM skills WHERE skill_name = $1 AND author_id = $2",
@@ -79,6 +125,34 @@ exports.updateSkill = async (req, res) => {
       return res.status(404).json({
         error: "Skill not found or you do not have permission to update it.",
       });
+    }
+
+    // Adaugă departamentul în tabela SkillDepartments
+    if (newDepartment) {
+      const department = await db.query(
+        "SELECT * FROM departments WHERE department_name = $1 AND department_manager_id = $2",
+        [newDepartment, author_id]
+      );
+
+      if (department.rows.length === 0) {
+        return res.status(403).json({
+          error: "Access forbidden. You are not the manager of the specified department.",
+        });
+      }
+
+      // Verifică dacă există deja o înregistrare pentru această abilitate și departament
+      const existingSkillDepartment = await db.query(
+        "SELECT * FROM SkillDepartments WHERE skill_id = $1 AND department_id = $2",
+        [existingSkill.rows[0].skill_id, department.rows[0].department_id]
+      );
+
+      if (existingSkillDepartment.rows.length === 0) {
+        // Dacă nu există, adaugă înregistrarea
+        await db.query(
+          "INSERT INTO SkillDepartments (skill_id, department_id) VALUES ($1, $2)",
+          [existingSkill.rows[0].skill_id, department.rows[0].department_id]
+        );
+      }
     }
 
     let categoryId = existingSkill.rows[0].category_id;
@@ -99,42 +173,21 @@ exports.updateSkill = async (req, res) => {
         categoryId = existingCategory.rows[0].category_id;
       }
     }
-    let result, skill;
-    // Verifică dacă utilizatorul este manager al noului departament
-    let currentDepartments = existingSkill.rows[0].departments || "";
-    if (newDepartment) {
-      const isDepartmentManager = await db.query(
-        "SELECT * FROM users WHERE user_id = $1 AND department_id = (SELECT department_id FROM skills WHERE skill_name = $2)",
-        [author_id, currentSkillName]
-      );
 
-      if (isDepartmentManager.rows.length === 0) {
-        const result = await db.query(
-          "UPDATE skills SET skill_name = $1, description = $2, category_id = $3 WHERE skill_name = $4 AND author_id = $5 RETURNING *",
-          [newSkillName, description, categoryId, currentSkillName, author_id]
-        );
-        skill = result;
-      } else {
-        // Dacă utilizatorul este manager al noului departament, adaugă-l la lista de departamente
-        currentDepartments += (currentDepartments ? " " : "") + newDepartment;
-        const result = await db.query(
-          "UPDATE skills SET skill_name = $1, description = $2, category_id = $3, departments = $4 WHERE skill_name = $5 AND author_id = $6 RETURNING *",
-          [
-            newSkillName,
-            description,
-            categoryId,
-            currentDepartments,
-            currentSkillName,
-            author_id,
-          ]
-        );
-        skill = result;
-      }
-    }
+    const result = await db.query(
+      "UPDATE skills SET skill_name = $1, description = $2, category_id = $3 WHERE skill_name = $4 AND author_id = $5 RETURNING *",
+      [
+        newSkillName || currentSkillName,
+        description || existingSkill.rows[0].description,
+        categoryId,
+        currentSkillName,
+        author_id,
+      ]
+    );
 
     res.status(200).json({
       success: true,
-      skill: skill.rows[0],
+      skill: result.rows[0],
     });
   } catch (error) {
     console.error(error.message);
@@ -163,6 +216,11 @@ exports.deleteSkill = async (req, res) => {
         error: "Skill not found or you do not have permission to delete it.",
       });
     }
+
+    await db.query(
+      "DELETE FROM SkillDepartments WHERE skill_id = $1",
+      [existingSkill.rows[0].skill_id]
+    );
 
     await db.query(
       "DELETE FROM skills WHERE skill_name = $1 AND author_id = $2",
