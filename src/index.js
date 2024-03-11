@@ -11,9 +11,14 @@
  //initialize middlewares
  app.use(express.json())
  app.use(cookieParser())
- app.use(cors({origin: CLIENT_URL, credentials: true}))
+ app.use(cors({origin: ['http://localhost:3000', 'http://localhost:3001'],
+ methods : 'GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS',
+ preflightContinue : false,
+ optionsSuccessStatus : 204,
+  credentials: true,}))
  app.use(passport.initialize())
  app.use(express.static("public"))
+ 
 
  //import routes
  const authRoutes = require('./routes/auth')
