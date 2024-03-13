@@ -33,7 +33,8 @@ exports.register = async (req, res) => {
       email: newUser.rows[0].email,
     };
     const token = await sign(payload, SECRET);
-    return res.status(201).cookie("token", token, { httpOnly: true }).json({
+    const maxAge = 3600 * 1000;
+    return res.status(201).cookie("token", token, { httpOnly: true,maxAge }).json({
       success: true,
       message: "The registration was succefull",
       accountType: role,
@@ -73,8 +74,8 @@ exports.register_admins = async (req, res) => {
     email: user.rows[0].email,
   };
   const token = await sign(payload, SECRET);
-
-    return res.status(201).cookie("token", token, { httpOnly: true }).json({
+  const maxAge = 3600 * 1000;
+    return res.status(201).cookie("token", token, { httpOnly: true,maxAge }).json({
       success: true,
       message: "The registraion was succefull",
       organization_id: id,
@@ -99,8 +100,8 @@ exports.login = async (req, res) => {
 
   try {
     const token = await sign(payload, SECRET);
-
-    return res.status(200).cookie("token", token, { httpOnly: true }).json({
+    const maxAge = 3600 * 1000;
+    return res.status(200).cookie("token", token, { httpOnly: true,maxAge }).json({
       success: true,
       message: "Logged in succefully",
       token : token,
@@ -124,7 +125,7 @@ exports.protected = async (req, res) => {
 };
 
 exports.logout = async (req, res) => {
-  try {console.log(req.user)
+  try {
 
     return res.status(200).clearCookie("token", { httpOnly: true }).json({
       success: true,
