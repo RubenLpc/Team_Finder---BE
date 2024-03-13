@@ -34,7 +34,7 @@ exports.register = async (req, res) => {
     };
     const token = await sign(payload, SECRET);
     const maxAge = 3600 * 1000;
-    return res.status(201).cookie("token", token, { httpOnly: true,maxAge,sameSite: 'None',secure: true  }).json({
+    return res.status(201).cookie("token", token, { httpOnly: true,maxAge,sameSite: 'Lax' }).json({
       success: true,
       message: "The registration was succefull",
       accountType: role,
@@ -75,7 +75,7 @@ exports.register_admins = async (req, res) => {
   };
   const token = await sign(payload, SECRET);
   const maxAge = 3600 * 1000;
-    return res.status(201).cookie("token", token, { httpOnly: true,maxAge ,sameSite: 'None', secure: true }).json({
+    return res.status(201).cookie("token", token, { httpOnly: true,maxAge ,sameSite: 'Lax' }).json({
       success: true,
       message: "The registraion was succefull",
       organization_id: id,
@@ -101,7 +101,7 @@ exports.login = async (req, res) => {
   try {
     const token = await sign(payload, SECRET);
     const maxAge = 3600 * 1000;
-    return res.status(200).cookie("token", token, { httpOnly: true,maxAge,sameSite: 'None', secure: true  }).json({
+    return res.status(200).cookie("token", token, { httpOnly: true,maxAge,sameSite: 'Lax'  }).json({
       success: true,
       message: "Logged in succefully",
       token : token,
