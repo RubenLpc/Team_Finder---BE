@@ -4,20 +4,23 @@ exports.createSkill = async (req, res) => {
   try {
     const { category_name, skill_name, description } = req.body;
     const author_id = req.user.id;
-    const departmentNames = req.body.departments;
+    
 
+    const departmentNames = req.body.departments.split(',').map(department => department.trim());
+    
     for (const departmentName of departmentNames) {
       const department = await db.query(
         "SELECT * FROM departments WHERE department_name = $1 AND department_manager_id = $2",
         [departmentName, req.user.id]
       );
+      
 
       if(department.rows.length === 0)
       {
         return res.status(400).json({ error: `Invalid department: ${departmentName}` });
       }
     }
-      
+    
 
     const existingSkill = await db.query(
       "SELECT * FROM skills WHERE skill_name = $1",
@@ -71,6 +74,7 @@ exports.createSkill = async (req, res) => {
     res.status(201).json({
       success: true,
       skill: result.rows[0],
+      user: req.user.username,
     });
   } catch (error) {
     console.error(error.message);
