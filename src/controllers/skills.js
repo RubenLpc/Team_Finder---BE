@@ -1,3 +1,4 @@
+const { use } = require("passport");
 const db = require("../db");
 
 exports.createSkill = async (req, res) => {
@@ -69,12 +70,16 @@ exports.createSkill = async (req, res) => {
         );
       } 
     }
-   
+    const user = req.user.username
 
     res.status(201).json({
       success: true,
-      skill: result.rows[0],
-      user: req.user.username,
+      skill: {details: result.rows[0],
+        user: user,
+        departments: req.body.departments
+
+      },
+  
     });
   } catch (error) {
     console.error(error.message);
