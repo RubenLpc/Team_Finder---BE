@@ -182,6 +182,26 @@ exports.getDepartmentMembers = async (req, res) => {
 };
 
 
+exports.getOrganizationDepartments = async (req, res) => {
+  try {
+    const { organization_id } = req.user;
+
+    const result = await db.query(
+      "SELECT department_name FROM departments WHERE organization_id = $1",
+      [organization_id]
+    );
+
+    res.status(200).json({
+      success: true,
+      departments: result.rows.map(row => row.department_name),
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 
 exports.getUsersWithoutDepartment = async (req, res) => {
   try {
