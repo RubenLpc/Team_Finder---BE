@@ -167,12 +167,12 @@ exports.getDepartmentMembers = async (req, res) => {
     }
     const departmentId = departmentCheck.rows[0].department_id;
     const result = await db.query(
-      "SELECT * FROM users WHERE department_id = $1",
+      "SELECT u.*, s.skill_name FROM users u LEFT JOIN userskills us ON u.user_id = us.user_id LEFT JOIN skills s ON us.skill_id = s.skill_id WHERE u.department_id = $1",
       [departmentId]
     );
 
     res.status(200).json({
-      succes: true,
+      success: true,
       users: result.rows,
     });
   } catch (error) {
@@ -180,6 +180,26 @@ exports.getDepartmentMembers = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
+
+
+exports.getUsersWithoutDepartment = async (req, res) => {
+  try {
+    const result = await db.query(
+      "SELECT u.*, s.skill_name FROM users u LEFT JOIN userskills us ON u.user_id = us.user_id LEFT JOIN skills s ON us.skill_id = s.skill_id WHERE u.department_id IS NULL;")
+
+    res.status(200).json({
+      success: true,
+      users: result.rows,
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
+
 
 
 
