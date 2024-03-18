@@ -99,6 +99,25 @@ exports.createProject = async (req, res) => {
   }
 };
 
+exports.getProjectByManager = async (req, res) => {
+  try {
+    const managerId = req.user.id;
+
+    const projects = await db.query(
+      "SELECT * FROM Projects WHERE project_manager_id = $1",
+      [managerId]
+    );
+
+    res.status(200).json({
+      success: true,
+      projects: projects.rows,
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 
 exports.updateProject = async (req, res) => {
   try {
