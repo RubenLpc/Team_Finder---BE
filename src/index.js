@@ -11,11 +11,13 @@
  //initialize middlewares
  app.use(express.json())
  app.use(cookieParser())
- app.use(cors({origin: ['http://localhost:3000', 'http://localhost:3001', 'https://atc-2024-cyber-creators-fe-linux-web-app.azurewebsites.net/'],
- methods : 'GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS',
- preflightContinue : false,
- optionsSuccessStatus : 204,
-  credentials: true,}))
+ app.use(cors({
+    origin: ['http://localhost:3000', 'http://localhost:3001', 'https://atc-2024-cyber-creators-fe-linux-web-app.azurewebsites.net'],
+    methods: 'GET, HEAD, PUT, PATCH, POST, DELETE, OPTIONS',
+    preflightContinue: false,
+    optionsSuccessStatus: 204,
+    credentials: true
+  }));
  app.use(passport.initialize())
  app.use(express.static("public"))
  
