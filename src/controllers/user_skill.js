@@ -79,39 +79,48 @@ exports.addSkillToUser = async (req, res) => {
 
 
 exports.getUserSkills = async (req, res) => {
-    try {
+  try {
       const userId = req.user.id;
-  
-      const userSkills = await db.query(
-        'SELECT skill_id, level, experience FROM userskills WHERE user_id = $1',
-        [userId]
+
+      const userSkillsQuery = await db.query(
+          'SELECT skill_id, level, experience FROM userskills WHERE user_id = $1',
+          [userId]
       );
-  
+
       const skills = [];
-  
-      for (const userSkill of userSkills.rows) {
-        const skillDetails = await db.query(
-          'SELECT skill_name FROM skills WHERE skill_id = $1',
-          [userSkill.skill_id]
-        );
-  
-        if (skillDetails.rows.length > 0) {
-          skills.push({
-            skill_name: skillDetails.rows[0].skill_name,
-            level: userSkill.level,
-            experience: userSkill.experience,
-          });
-        }
+      const userDepartmentId = req.user.department_id;
+
+      // Obține numele departamentului asociat userDepartmentId
+      const departmentQuery = await db.query(
+          'SELECT department_name FROM departments WHERE department_id = $1',
+          [userDepartmentId]
+      );
+
+      const departmentName = departmentQuery.rows.length > 0 ? departmentQuery.rows[0].department_name : null;
+
+      for (const userSkill of userSkillsQuery.rows) {
+          const skillDetails = await db.query(
+              'SELECT skill_name FROM skills WHERE skill_id = $1',
+              [userSkill.skill_id]
+          );
+
+          if (skillDetails.rows.length > 0) {
+              skills.push({
+                  skill_name: skillDetails.rows[0].skill_name,
+                  level: userSkill.level,
+                  experience: userSkill.experience,
+              });
+          }
       }
-  
+
       res.status(200).json({
-        success: true,
-        skills: skills,
-        user:req.user
+          success: true,
+          skills: skills,
+          department_name: departmentName,
+          user: req.user
       });
-    } catch (error) {
+  } catch (error) {
       console.error(error.message);
       res.status(500).json({ error: error.message });
-    }
-  };
-  
+  }
+};

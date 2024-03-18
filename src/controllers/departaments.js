@@ -167,7 +167,7 @@ exports.getDepartmentMembers = async (req, res) => {
     }
     const departmentId = departmentCheck.rows[0].department_id;
     const result = await db.query(
-      "SELECT u.*, s.skill_name FROM users u LEFT JOIN userskills us ON u.user_id = us.user_id LEFT JOIN skills s ON us.skill_id = s.skill_id WHERE u.department_id = $1",
+      "SELECT * FROM users WHERE department_id = $1",
       [departmentId]
     );
 
