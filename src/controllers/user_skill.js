@@ -107,6 +107,7 @@ exports.getUserSkills = async (req, res) => {
       res.status(200).json({
         success: true,
         skills: skills,
+        user:req.user
       });
     } catch (error) {
       console.error(error.message);

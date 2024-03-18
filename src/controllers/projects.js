@@ -102,11 +102,25 @@ exports.createProject = async (req, res) => {
 exports.getProjectByManager = async (req, res) => {
   try {
     const managerId = req.user.id;
+    const organizationId = req.user.organizationId; // Presupunând că poți accesa ID-ul organizației din obiectul utilizatorului
 
-    const projects = await db.query(
-      "SELECT * FROM Projects WHERE project_manager_id = $1",
-      [managerId]
-    );
+    let projects;
+    if (req.user.role === 'organization_admin') {
+      // Dacă utilizatorul este administrator de organizație, căutăm proiectele managerilor din organizația sa
+      projects = await db.query(
+        `SELECT p.* 
+         FROM Projects p
+         INNER JOIN Users u ON p.project_manager_id = u.user_id
+         WHERE u.organization_id = $1`,
+        [organizationId]
+      );
+    } else {
+      // Dacă utilizatorul nu este administrator de organizație, căutăm proiectele managerului curent
+      projects = await db.query(
+        "SELECT * FROM Projects WHERE project_manager_id = $1",
+        [managerId]
+      );
+    }
 
     res.status(200).json({
       success: true,
@@ -117,6 +131,7 @@ exports.getProjectByManager = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 exports.updateProject = async (req, res) => {
