@@ -124,3 +124,61 @@ exports.getUserSkills = async (req, res) => {
       res.status(500).json({ error: error.message });
   }
 };
+
+
+exports.getUserSkillsByUsername = async (req, res) => {
+  try {
+      const { username } = req.params; // Obține numele utilizatorului din parametrii rutei
+
+      const userQuery = await db.query(
+          'SELECT user_id, department_id FROM users WHERE username = $1',
+          [username]
+      );
+
+      if (userQuery.rows.length === 0) {
+          return res.status(404).json({ error: 'User not found' });
+      }
+
+      const { user_id: userId, department_id: userDepartmentId } = userQuery.rows[0];
+
+      const userSkillsQuery = await db.query(
+          'SELECT skill_id, level, experience FROM userskills WHERE user_id = $1',
+          [userId]
+      );
+
+      const skills = [];
+      
+      // Obține numele departamentului asociat userDepartmentId
+      const departmentQuery = await db.query(
+          'SELECT department_name FROM departments WHERE department_id = $1',
+          [userDepartmentId]
+      );
+
+      const departmentName = departmentQuery.rows.length > 0 ? departmentQuery.rows[0].department_name : null;
+
+      for (const userSkill of userSkillsQuery.rows) {
+          const skillDetails = await db.query(
+              'SELECT skill_name FROM skills WHERE skill_id = $1',
+              [userSkill.skill_id]
+          );
+
+          if (skillDetails.rows.length > 0) {
+              skills.push({
+                  skill_name: skillDetails.rows[0].skill_name,
+                  level: userSkill.level,
+                  experience: userSkill.experience,
+              });
+          }
+      }
+
+      res.status(200).json({
+          success: true,
+          skills: skills,
+          department_name: departmentName,
+          user: { username: username, department_id: userDepartmentId }
+      });
+  } catch (error) {
+      console.error(error.message);
+      res.status(500).json({ error: error.message });
+  }
+};
