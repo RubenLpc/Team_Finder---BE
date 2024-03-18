@@ -23,7 +23,6 @@ exports.register = async (req, res) => {
     const org_id = req.user.organization_id;
     const role = "Employee";
     const hashedPassword = await hash(password, 10);
-    console.log(req.user)
     const newUser = await db.query(
       "insert into users(username,email,password,role,organization_id) values ($1 , $2, $3, $4, $5) returning *",
       [name, email, hashedPassword, role, org_id]

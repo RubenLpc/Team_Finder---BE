@@ -18,7 +18,7 @@ exports.checkOrganizationAdmin = async (req, res, next) => {
     try {
       if (req.user.role !== "Department Manager") {
         return res.status(403).json({
-          error: "Access forbidden. Only Organization Admins can manage team roles.",
+          error: "Access forbidden. Only Department Managers can acces this section.",
         });
       }
       next();
@@ -32,7 +32,7 @@ exports.checkOrganizationAdmin = async (req, res, next) => {
     try {
       if (req.user.role !== "Project Manager") {
         return res.status(403).json({
-          error: "Access forbidden. Only Organization Admins can manage team roles.",
+          error: "Access forbidden. Only Project Manager can acces this section.",
         });
       }
       next();
