@@ -74,68 +74,70 @@ async function isUserProjectManager(userId) {
 
 
 
-  exports.viewDepartmentProjects = async (req, res) => {
-    try {
+exports.viewDepartmentProjects = async (req, res) => {
+  try {
       const departmentId = req.user.department_id;
-  
+
       const departmentMembersQuery = `
-        SELECT user_id
-        FROM Users
-        WHERE department_id = $1;
+          SELECT user_id
+          FROM Users
+          WHERE department_id = $1;
       `;
-  
+
       const departmentMembersResult = await db.query(departmentMembersQuery, [departmentId]);
       const departmentMemberIds = departmentMembersResult.rows.map(member => member.user_id);
-  
+
       const departmentProjectsQuery = `
-        SELECT project_id, project_name, deadline_date, status
-        FROM Projects
-        WHERE EXISTS (
-          SELECT 1
-          FROM ProjectTeam
-          WHERE ProjectTeam.project_id = Projects.project_id
-            AND ProjectTeam.user_id = ANY($1)
-        );
+          SELECT project_id, project_name, deadline_date, status
+          FROM Projects
+          WHERE EXISTS (
+              SELECT 1
+              FROM ProjectTeam
+              WHERE ProjectTeam.project_id = Projects.project_id
+                  AND ProjectTeam.user_id = ANY($1)
+          );
       `;
-  
+
       const departmentProjects = await db.query(departmentProjectsQuery, [departmentMemberIds]);
-  
+
       // Obține membrii pentru fiecare proiect
       const projectMembersQuery = `
-        SELECT project_id, user_id, roles
-        FROM ProjectTeam
-        WHERE project_id = ANY($1);
+          SELECT project_id, user_id, roles
+          FROM ProjectTeam
+          WHERE project_id = ANY($1);
       `;
-  
+
       const projectMembers = await db.query(projectMembersQuery, [departmentProjects.rows.map(project => project.project_id)]);
-  
+
       const memberNamesQuery = `
-        SELECT user_id, username
-        FROM Users
-        WHERE user_id = ANY($1);
+          SELECT user_id, username
+          FROM Users
+          WHERE user_id = ANY($1);
       `;
-  
+
       const memberNames = await db.query(memberNamesQuery, [projectMembers.rows.map(member => member.user_id)]);
-  
+
       const projectsWithMembers = departmentProjects.rows.map(project => {
-        const members = projectMembers.rows
-          .filter(member => member.project_id === project.project_id)
-          .map(member => {
-            const userName = memberNames.rows.find(name => name.user_id === member.user_id)?.username;
-            return { user_id: member.user_id, username: userName, roles: member.roles };
-          });
-        return { ...project, members };
+          const members = projectMembers.rows
+              .filter(member => member.project_id === project.project_id)
+              .map(member => {
+                  const userName = memberNames.rows.find(name => name.user_id === member.user_id)?.username;
+                  return userName;
+              });
+          const membersString = members.join(', '); // Convertim array-ul de nume într-un șir separat prin virgule
+          return { ...project, members: membersString };
       });
-  
+
       res.status(200).json({
-        success: true,
-        departmentProjects: projectsWithMembers,
+          success: true,
+          departmentProjects: projectsWithMembers,
       });
-    } catch (error) {
+  } catch (error) {
       console.error(error.message);
       res.status(500).json({ error: error.message });
-    }
-  };
+  }
+};
+
 
   
   exports.viewProjectDetails = async (req, res) => {
