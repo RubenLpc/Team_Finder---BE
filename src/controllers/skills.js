@@ -5,7 +5,6 @@ exports.createSkill = async (req, res) => {
   try {
     const { category_name, skill_name, description } = req.body;
     const author_id = req.user.id;
-    
 
     const departmentNames = req.body.departments.split(',').map(department => department.trim());
     
@@ -14,15 +13,12 @@ exports.createSkill = async (req, res) => {
         "SELECT * FROM departments WHERE department_name = $1 AND department_manager_id = $2",
         [departmentName, req.user.id]
       );
-      
 
-      if(department.rows.length === 0)
-      {
+      if (department.rows.length === 0) {
         return res.status(400).json({ error: `Invalid department: ${departmentName}` });
       }
     }
     
-
     const existingSkill = await db.query(
       "SELECT * FROM skills WHERE skill_name = $1",
       [skill_name]
@@ -70,22 +66,38 @@ exports.createSkill = async (req, res) => {
         );
       } 
     }
-    const user = req.user.username
+
+    const user = req.user.username;
+
+    // Fetching departments where skill is used
+    const departmentsResult = await db.query(
+      `SELECT departments.department_name
+       FROM departments
+       JOIN SkillDepartments ON departments.department_id = SkillDepartments.department_id
+       WHERE SkillDepartments.skill_id = $1`,
+      [skill_id]
+    );
+
+    // Extracting department names into a comma-separated string
+    const departmentsUsed = departmentsResult.rows.map(department => department.department_name).join(', ');
 
     res.status(201).json({
       success: true,
-      skill: {details: result.rows[0],
-        user: user,
-        departments: req.body.departments
-
-      },
-  
+      skill: {
+        details: result.rows[0],
+        skill_name: skill_name,
+        description: description,
+        category : category_name,
+        author: user,
+        department: departmentsUsed
+      }
     });
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 exports.updateSkill = async (req, res) => {
   try {
