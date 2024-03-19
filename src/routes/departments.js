@@ -2,7 +2,7 @@ const {Router} = require('express')
 const {userAuth} = require('../middlewares/auth-middleware')
 const router = Router()
 
-const { create_departament, assignManagerToDepartment, addEmployeeToDepartment, getDepartmentMembers, deleteDepartment, getUsersWithoutDepartment, getOrganizationDepartments, getDepartmentSkills, removeEmployeeFromDepartment } = require('../controllers/departaments');
+const { create_departament, assignManagerToDepartment, addEmployeeToDepartment, getDepartmentMembers, deleteDepartment, getUsersWithoutDepartment, getOrganizationDepartments, getDepartmentSkills, removeEmployeeFromDepartment, getDepartmentManager } = require('../controllers/departaments');
 const { checkOrganizationAdmin, checkDepartmentManager } = require('../validators/roles');
 
 
@@ -16,6 +16,7 @@ router.get('/departments/noMembers',userAuth, getUsersWithoutDepartment);
 router.get('/organization/departments',userAuth, getOrganizationDepartments);
 router.get('/departments/:departmentName/skills', userAuth, getDepartmentSkills);
 router.put('/departments/removeEmployee', userAuth, removeEmployeeFromDepartment);
+router.get('/departments/:departmentName/manager', userAuth, getDepartmentManager);
 
 
 module.exports = router

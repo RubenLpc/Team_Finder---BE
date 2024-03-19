@@ -218,6 +218,40 @@ exports.getDepartmentSkills = async (req, res) => {
   }
 };
 
+exports.getDepartmentManager = async (req, res) => {
+  try {
+    const { departmentName } = req.params;
+    const departmentCheck = await db.query(
+      "SELECT * FROM departments WHERE department_name = $1",
+      [departmentName]
+    );
+    if (departmentCheck.rows.length === 0) {
+      return res.status(404).json({ error: "Department not found" });
+    }
+    const departmentId = departmentCheck.rows[0].department_id;
+
+    // Interogare pentru a găsi managerul de departament în baza de date
+    const managerResult = await db.query(
+      "SELECT u.username AS manager_name FROM users u WHERE u.department_id = $1 AND u.role = 'Department Manager'",
+      [departmentId]
+    );
+
+    if (managerResult.rows.length === 0) {
+      return res.status(404).json({ error: "Department manager not found" });
+    }
+
+    // Returnarea numele managerului de departament
+    res.status(200).json({
+      success: true,
+      managerName: managerResult.rows[0].manager_name,
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 
 exports.getDepartmentMembers = async (req, res) => {
   try {
