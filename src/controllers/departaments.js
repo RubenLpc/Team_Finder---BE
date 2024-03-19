@@ -154,6 +154,37 @@ exports.addEmployeeToDepartment = async (req, res) => {
   }
 };
 
+
+exports.removeEmployeeFromDepartment = async (req, res) => {
+  try {
+    const { employeeName } = req.body;
+    const departmentId = req.user.department_id;
+
+    const employeeCheck = await db.query(
+      "SELECT * FROM users WHERE username = $1 AND department_id = $2",
+      [employeeName, departmentId]
+    );
+
+    if (employeeCheck.rows.length === 0) {
+      return res.status(404).json({ error: "Employee not found in this department" });
+    }
+
+    const result = await db.query(
+      "UPDATE users SET department_id = NULL WHERE username = $1 RETURNING *",
+      [employeeName]
+    );
+
+    res.status(200).json({
+      success: true,
+      user: result.rows[0],
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
+
 exports.getDepartmentSkills = async (req, res) => {
   try {
     const { departmentName } = req.params;
