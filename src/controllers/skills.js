@@ -223,7 +223,25 @@ exports.deleteSkill = async (req, res) => {
 exports.getAllSkillsForOrganization = async (req, res) => {
   try {
     const organizationSkills = await db.query(
-      `SELECT * FROM skills WHERE author_id IN (SELECT user_id FROM users WHERE organization_id = $1 )`,
+      `SELECT 
+         s.skill_id,
+         s.skill_name,
+         s.description,
+         sc.category_name AS category,
+         d.department_name AS department,
+         u.username AS author
+       FROM 
+         Skills s
+       JOIN 
+         SkillCategories sc ON s.category_id = sc.category_id
+       JOIN 
+         Users u ON s.author_id = u.user_id
+       LEFT JOIN 
+         SkillDepartments sd ON s.skill_id = sd.skill_id
+       LEFT JOIN 
+         Departments d ON sd.department_id = d.department_id
+       WHERE 
+         u.organization_id = $1`,
       [req.user.organization_id]
     );
 
@@ -236,6 +254,7 @@ exports.getAllSkillsForOrganization = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 exports.linkSkillToDepartment = async (req, res) => {
   try {
