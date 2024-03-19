@@ -274,7 +274,7 @@ exports.linkSkillToDepartment = async (req, res) => {
     const author_id = req.user.id;
 
     const existingSkill = await db.query(
-      "SELECT * FROM skills WHERE skill_name = $1 ",
+      "SELECT * FROM skills WHERE skill_name = $1",
       [skillName]
     );
 
@@ -282,26 +282,16 @@ exports.linkSkillToDepartment = async (req, res) => {
       return res.status(404).json({ error: "Skill not found." });
     }
 
-    const departmentResult = await db.query(
-      "SELECT department_name FROM departments WHERE department_id = $1",
-      [req.user.department_id]
-    );
-    const departmentName = departmentResult.rows[0].department_name;
+    const departmentId = req.user.department_id;
 
-    const result = await db.query(
-      "INSERT INTO skills (skill_name, category_id, description, departments, author_id) VALUES($1, $2, $3, $4, $5) RETURNING *",
-      [
-        skillName,
-        existingSkill.rows[0].category_id,
-        existingSkill.rows[0].description,
-        departmentName,
-        author_id,
-      ]
+    await db.query(
+      "INSERT INTO SkillDepartments (skill_id, department_id) VALUES ($1, $2)",
+      [existingSkill.rows[0].skill_id, departmentId]
     );
 
     res.status(200).json({
       success: true,
-      skill: result.rows[0],
+      message: "Skill linked to department successfully.",
     });
   } catch (error) {
     console.error(error.message);
