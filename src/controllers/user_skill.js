@@ -4,74 +4,94 @@ exports.addSkillToUser = async (req, res) => {
   try {
     const { skillName, level, experience } = req.body;
     const userId = req.user.id;
-
+  
     if (!Number.isInteger(level) || level < 1 || level > 5) {
       return res.status(400).json({
         error: 'Invalid level. Must be an integer between 1 and 5.',
       });
     }
-
+  
     const validExperienceValues = ['0-6 months', '6-12 months', '1-2 years', '2-4 years', '4-7 years', '>7 years'];
     if (!validExperienceValues.includes(experience)) {
       return res.status(400).json({
         error: 'Invalid experience. Must be one of: 0-6 months, 6-12 months, 1-2 years, 2-4 years, 4-7 years, >7 years.',
       });
     }
-
+  
     const skillDetails = await db.query(
       'SELECT * FROM skills WHERE skill_name = $1',
       [skillName]
     );
-
+  
     if (skillDetails.rows.length === 0) {
       return res.status(404).json({
         error: 'Skill not found.',
       });
     }
-
+  
     const skillId = skillDetails.rows[0].skill_id;
-
+  
     const existingSkill = await db.query(
       'SELECT * FROM userskills WHERE user_id = $1 AND skill_id = $2',
       [userId, skillId]
     );
-
+  
     if (existingSkill.rows.length > 0) {
       return res.status(409).json({
         error: 'User already possesses this skill.',
       });
     }
-
+  
     const result = await db.query(
       'INSERT INTO userskills (user_id, skill_id, level, experience) VALUES ($1, $2, $3, $4) RETURNING *',
       [userId, skillId, level, experience]
     );
-
+  
     const userNameQuery = 'SELECT username FROM users WHERE user_id = $1';
     const userNameResult = await db.query(userNameQuery, [userId]);
     const userName = userNameResult.rows[0].username;
-
-    const managerIdQuery = 'SELECT department_manager_id FROM departments WHERE department_id = $1';
-    const departmentIdResult = await db.query(managerIdQuery, [req.user.department_id]);
-    const managerId = departmentIdResult.rows[0].department_manager_id;
-
-    const notificationMessage = `${userName} has added a new skill that requires validation.`;
-
-    const notificationQuery = `
-      INSERT INTO notifications (user_id, message, type)
-      VALUES ($1, $2, 'skill_validation')
+  
+    const departmentQuery = `
+      SELECT departments.department_name, users.username
+      FROM departments
+      JOIN users ON departments.department_manager_id = users.user_id
+      WHERE departments.department_id = $1
     `;
-    const notificationValues = [managerId, notificationMessage];
-    await db.query(notificationQuery, notificationValues);
+    const departmentResult = await db.query(departmentQuery, [req.user.department_id]);
+    const departmentName = departmentResult.rows[0].department_name;
+    const managerName = departmentResult.rows[0].username;
+  
+    const departmentManagerQuery = `
+  SELECT department_manager_id FROM departments WHERE department_id = $1
+`;
+const departmentManagerResult = await db.query(departmentManagerQuery, [req.user.department_id]);
+const departmentManagerId = departmentManagerResult.rows[0].department_manager_id;
 
-    res.status(201).json({
-      success: true,
-      message: 'Skill assigned successfully. Manager notified for validation.',
-    });
+const notificationMessage = `${userName} has added a new skill that requires validation in the ${departmentName} department.`;
+
+const notificationQuery = `
+  INSERT INTO notifications (user_id, message, type)
+  VALUES ($1, $2, 'skill_validation')
+`;
+const notificationValues = [departmentManagerId, notificationMessage];
+await db.query(notificationQuery, notificationValues);
+
+res.status(201).json({
+  success: true,
+  message: 'Skill assigned successfully. Manager notified for validation.',
+  name: userName,
+  skill: skillName,
+  department: departmentName,
+  managerName: managerName,
+  experience: experience,
+  level: level
+});
+
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ error: error.message });
   }
+  
 };
 
 
@@ -116,8 +136,8 @@ exports.getUserSkills = async (req, res) => {
       res.status(200).json({
           success: true,
           skills: skills,
-          department_name: departmentName,
-          user: req.user
+          department: departmentName,
+          name: req.user.username
       });
   } catch (error) {
       console.error(error.message);
