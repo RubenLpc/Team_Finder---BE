@@ -154,6 +154,39 @@ exports.addEmployeeToDepartment = async (req, res) => {
   }
 };
 
+exports.getDepartmentSkills = async (req, res) => {
+  try {
+    const { departmentName } = req.params;
+    const departmentCheck = await db.query(
+      "SELECT * FROM departments WHERE department_name = $1",
+      [departmentName]
+    );
+    if (departmentCheck.rows.length === 0) {
+      return res.status(404).json({ error: "Department not found" });
+    }
+    const departmentId = departmentCheck.rows[0].department_id;
+    const result = await db.query(`
+      SELECT s.skill_name
+      FROM users u
+      JOIN userskills us ON u.user_id = us.user_id
+      JOIN skills s ON us.skill_id = s.skill_id
+      WHERE u.department_id = $1
+      GROUP BY s.skill_name;`,
+      [departmentId]
+    );
+
+    const departmentSkills = result.rows.map(row => row.skill_name);
+
+    res.status(200).json({
+      success: true,
+      departmentSkills: departmentSkills,
+    });
+  } catch (error) {
+    console.error(error.message);
+    res.status(500).json({ error: error.message });
+  }
+};
+
 
 exports.getDepartmentMembers = async (req, res) => {
   try {
@@ -166,20 +199,32 @@ exports.getDepartmentMembers = async (req, res) => {
       return res.status(404).json({ error: "Department not found" });
     }
     const departmentId = departmentCheck.rows[0].department_id;
-    const result = await db.query(
-      "SELECT * FROM users WHERE department_id = $1",
+    const result = await db.query(`
+      SELECT u.*, STRING_AGG(s.skill_name, ', ') AS skill_names
+      FROM users u
+      LEFT JOIN userskills us ON u.user_id = us.user_id
+      LEFT JOIN skills s ON us.skill_id = s.skill_id
+      WHERE u.department_id = $1
+      GROUP BY u.user_id;`,
       [departmentId]
     );
 
+    // Modificăm structura datelor pentru a avea o cheie "skill_names" care să conțină skill-urile separate prin virgulă
+    const departmentMembers = result.rows.map(member => ({
+      ...member,
+      skill_names: member.skill_names || null // Setăm skill_names la null dacă este null
+    }));
+
     res.status(200).json({
       success: true,
-      users: result.rows,
+      users: departmentMembers,
     });
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 exports.getOrganizationDepartments = async (req, res) => {
@@ -205,18 +250,30 @@ exports.getOrganizationDepartments = async (req, res) => {
 
 exports.getUsersWithoutDepartment = async (req, res) => {
   try {
-    const result = await db.query(
-      "SELECT u.*, s.skill_name FROM users u LEFT JOIN userskills us ON u.user_id = us.user_id LEFT JOIN skills s ON us.skill_id = s.skill_id WHERE u.department_id IS NULL;")
+    const result = await db.query(`
+      SELECT u.*, STRING_AGG(s.skill_name, ', ') AS skill_names
+      FROM users u
+      LEFT JOIN userskills us ON u.user_id = us.user_id
+      LEFT JOIN skills s ON us.skill_id = s.skill_id
+      WHERE u.department_id IS NULL
+      GROUP BY u.user_id;`);
+
+    // Modificăm structura datelor pentru a avea o cheie "skill_names" care să conțină skill-urile separate prin virgulă
+    const usersWithSkills = result.rows.map(user => ({
+      ...user,
+      skill_names: user.skill_names || null // Setăm skill_names la un șir gol dacă este null
+    }));
 
     res.status(200).json({
       success: true,
-      users: result.rows,
+      users: usersWithSkills,
     });
   } catch (error) {
     console.error(error.message);
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 
