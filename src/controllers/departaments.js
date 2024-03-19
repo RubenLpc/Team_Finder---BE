@@ -250,13 +250,19 @@ exports.getOrganizationDepartments = async (req, res) => {
 
 exports.getUsersWithoutDepartment = async (req, res) => {
   try {
+    // Extragem organizația utilizatorului autentificat din token
+    const userOrganizationId = req.user.organization_id;
+
     const result = await db.query(`
       SELECT u.*, STRING_AGG(s.skill_name, ', ') AS skill_names
       FROM users u
       LEFT JOIN userskills us ON u.user_id = us.user_id
       LEFT JOIN skills s ON us.skill_id = s.skill_id
       WHERE u.department_id IS NULL
-      GROUP BY u.user_id;`);
+      AND u.organization_id = $1
+      GROUP BY u.user_id;`,
+      [userOrganizationId]
+    );
 
     // Modificăm structura datelor pentru a avea o cheie "skill_names" care să conțină skill-urile separate prin virgulă
     const usersWithSkills = result.rows.map(user => ({
@@ -273,6 +279,7 @@ exports.getUsersWithoutDepartment = async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 
 
