@@ -137,7 +137,8 @@ exports.getUserSkills = async (req, res) => {
           success: true,
           skills: skills,
           department: departmentName,
-          name: req.user.username
+          name: req.user.username,
+          user: req.user
       });
   } catch (error) {
       console.error(error.message);
