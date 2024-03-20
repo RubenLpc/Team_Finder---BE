@@ -140,79 +140,107 @@ exports.viewDepartmentProjects = async (req, res) => {
 
 
   
-  exports.viewProjectDetails = async (req, res) => {
-    try {
-        const projectName = req.params.projectName; 
+exports.viewProjectDetails = async (req, res) => {
+  try {
+      const projectName = req.params.projectName;
 
-        const projectDetailsQuery = `
-            SELECT
-                project_id,
-                project_name,
-                project_period,
-                start_date,
-                deadline_date,
-                status AS project_status,
-                general_description,
-                technology_stack
-            FROM Projects
-            WHERE project_name = $1;
-        `;
+      const projectDetailsQuery = `
+          SELECT
+              project_id,
+              project_name,
+              project_period,
+              start_date,
+              deadline_date,
+              status AS project_status,
+              general_description,
+              technology_stack
+          FROM Projects
+          WHERE project_name = $1;
+      `;
 
-        const projectDetailsResult = await db.query(projectDetailsQuery, [projectName]);
+      const projectDetailsResult = await db.query(projectDetailsQuery, [projectName]);
 
-        if (projectDetailsResult.rows.length === 0) {
-            return res.status(404).json({
-                error: 'Project not found.',
-            });
-        }
+      if (projectDetailsResult.rows.length === 0) {
+          return res.status(404).json({
+              error: 'Project not found.',
+          });
+      }
 
-        const projectId = projectDetailsResult.rows[0].project_id;
+      const projectId = projectDetailsResult.rows[0].project_id;
 
-        const teamMembersQuery = `
-            SELECT user_id, roles
-            FROM ProjectTeam
-            WHERE project_id = $1;
-        `;
+      const teamMembersQuery = `
+          SELECT user_id, roles
+          FROM ProjectTeam
+          WHERE project_id = $1;
+      `;
 
-        const teamMembersResult = await db.query(teamMembersQuery, [projectId]);
+      const teamMembersResult = await db.query(teamMembersQuery, [projectId]);
 
-        // Obține numele membrilor într-o interogare separată
-        const memberIds = teamMembersResult.rows.map(member => member.user_id);
-        const memberNamesQuery = `
-            SELECT user_id, username
-            FROM Users
-            WHERE user_id = ANY($1);
-        `;
+      // Obține numele membrilor într-o interogare separată
+      const memberIds = teamMembersResult.rows.map(member => member.user_id);
+      const memberNamesQuery = `
+          SELECT user_id, username
+          FROM Users
+          WHERE user_id = ANY($1);
+      `;
 
-        const memberNamesResult = await db.query(memberNamesQuery, [memberIds]);
+      const memberNamesResult = await db.query(memberNamesQuery, [memberIds]);
 
-        const teamMembers = teamMembersResult.rows.map(member => {
-            const memberName = memberNamesResult.rows.find(name => name.user_id === member.user_id)?.username;
-            return {
-                user_id: member.user_id,
-                username: memberName,
-                roles: member.roles,
-                status: projectDetailsResult.rows[0].project_status,
-            };
-        });
+      const teamMembers = teamMembersResult.rows.map(member => {
+          const memberName = memberNamesResult.rows.find(name => name.user_id === member.user_id)?.username;
+          return {
+              user_id: member.user_id,
+              username: memberName,
+              roles: member.roles,
+              status: projectDetailsResult.rows[0].project_status,
+          };
+      });
 
-        const projectDetails = {
-            project_name: projectDetailsResult.rows[0].project_name,
-            project_period: projectDetailsResult.rows[0].project_period,
-            start_date: projectDetailsResult.rows[0].start_date,
-            deadline_date: projectDetailsResult.rows[0].deadline_date,
-            project_status: projectDetailsResult.rows[0].project_status,
-            general_description: projectDetailsResult.rows[0].general_description,
-            technology_stack: projectDetailsResult.rows[0].technology_stack,
-            team_members: teamMembers,
-        };
+      // Obține membrii pasi pentru proiect
+      const pastMembersQuery = `
+          SELECT u.username
+          FROM ProjectTeamStatus pts
+          JOIN Users u ON pts.user_id = u.user_id
+          WHERE pts.project_id = $1 AND pts.status = 'past';
+      `;
 
-        res.status(200).json({
-            success: true,
-            projectDetails: projectDetails,
-        });
-    } catch (error) {
-        console.error(error.message);
-        res.status(500).json({ error: error.message });
-    }
+      const pastMembersResult = await db.query(pastMembersQuery, [projectId]);
+
+      const pastMembers = pastMembersResult.rows.map(member => member.username);
+
+      // Obține membrii propuși pentru proiect
+      const proposedMembersQuery = `
+          SELECT u.username
+          FROM ProjectProposals pp
+          JOIN Users u ON pp.proposed_user_id = u.user_id
+          WHERE pp.project_id = $1 AND pp.proposal_type = 'assignment';
+      `;
+
+      const proposedMembersResult = await db.query(proposedMembersQuery, [projectId]);
+
+      const proposedMembers = proposedMembersResult.rows.map(member => member.username);
+
+      const projectDetails = {
+          project_name: projectDetailsResult.rows[0].project_name,
+          project_period: projectDetailsResult.rows[0].project_period,
+          start_date: projectDetailsResult.rows[0].start_date,
+          deadline_date: projectDetailsResult.rows[0].deadline_date,
+          project_status: projectDetailsResult.rows[0].project_status,
+          general_description: projectDetailsResult.rows[0].general_description,
+          technology_stack: projectDetailsResult.rows[0].technology_stack,
+          team_members: teamMembers,
+          past_members: pastMembers,
+          proposed_members: proposedMembers,
+      };
+
+      res.status(200).json({
+          success: true,
+          projectDetails: projectDetails,
+      });
+  } catch (error) {
+      console.error(error.message);
+      res.status(500).json({ error: error.message });
+  }
 };
+
+
