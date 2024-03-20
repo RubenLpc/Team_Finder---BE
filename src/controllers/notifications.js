@@ -11,7 +11,7 @@ exports.getUserNotifications = async (req, res) => {
       );
   
       await db.query(
-        'UPDATE notifications SET is_read = true WHERE user_id = $1 AND is_read = false',
+        'UPDATE notifications SET is_read = true WHERE user_id = $1 ',
         [userId]
       );
   
