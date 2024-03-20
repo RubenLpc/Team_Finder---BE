@@ -6,7 +6,7 @@ exports.getUserNotifications = async (req, res) => {
       const userId = req.user.id;
   
       const userNotifications = await db.query(
-        'SELECT notification_id, message, type, created_at FROM notifications WHERE user_id = $1 AND is_read = false',
+        'SELECT notification_id, message, type, created_at FROM notifications WHERE user_id = $1',
         [userId]
       );
   
